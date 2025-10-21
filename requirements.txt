@@ -1,0 +1,4 @@
+PyGObject
+Pillow
+pyyaml
+python-i18n

@@ -1,0 +1,34 @@
+{
+  "es": {
+    "app": {
+      "title": "🖼️ MultiWall - Wallpapers Multi-Monitor",
+      "header": "🖥️ Gestor de Wallpapers Multi-Monitor",
+      "preview_label": "👁️ Vista Previa",
+      "controls_label": "⚙️ Configuración de Monitores",
+      "buttons": {
+        "update": "🔄 Actualizar Vista",
+        "save": "💾 Guardar Configuración",
+        "apply": "✅ Aplicar Fondo"
+      },
+      "dialogs": {
+        "saved": "✅ Configuración guardada exitosamente",
+        "applied": "✅ Fondo aplicado exitosamente",
+        "error": "❌ Error al aplicar el fondo: %{error}"
+      }
+    },
+    "monitor": {
+      "title": "🖥️ Monitor %{number}",
+      "image_label": "🖼️ Imagen:",
+      "select_image": "📁 Seleccionar imagen...",
+      "mode_label": "📐 Modo:",
+      "background_label": "🎨 Fondo:",
+      "modes": {
+        "fill": "⬜ Rellenar",
+        "fit": "📏 Ajustar",
+        "stretch": "↔️ Estirar",
+        "center": "🎯 Centrar",
+        "tile": "🔲 Mosaico"
+      }
+    }
+  }
+}

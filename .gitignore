@@ -1,0 +1,8 @@
+.venv
+multiwall/__pycache__/
+multiwall/*.pyc
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,326 @@
+import i18n
+import os
+import sys
+from pathlib import Path
+
+# Asegurar UTF-8 para emojis
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
+# Configuración de i18n
+translations_path = Path(__file__).parent / 'translations'
+i18n.load_path.clear()
+i18n.load_path.append(str(translations_path))
+i18n.set('filename_format', '{locale}.{format}')
+i18n.set('file_format', 'json')
+i18n.set('fallback', 'en')
+i18n.set('error_on_missing_translation', False)
+i18n.set('error_on_missing_placeholder', False)
+
+# Detectar idioma del sistema
+def detect_system_language():
+    lang = os.getenv('LANGUAGE')
+    if lang and lang != 'C':
+        detected = lang.split(':')[0][:2]
+        print(f"Idioma detectado desde LANGUAGE: {detected}")
+        return detected
+    
+    lang = os.getenv('LANG')
+    if lang and lang != 'C':
+        detected = lang.split('_')[0]
+        print(f"Idioma detectado desde LANG: {detected}")
+        return detected
+    
+    try:
+        import locale
+        system_lang, _ = locale.getdefaultlocale()
+        if system_lang and system_lang != 'C':
+            detected = system_lang[:2]
+            print(f"Idioma detectado desde locale: {detected}")
+            return detected
+    except Exception as e:
+        print(f"Error detectando locale: {e}")
+    
+    print("Usando idioma por defecto: en")
+    return 'en'
+
+detected_lang = detect_system_language()
+i18n.set('locale', detected_lang)
+
+print(f"Ruta de traducciones: {translations_path}")
+print(f"Ruta existe: {translations_path.exists()}")
+if translations_path.exists():
+    print(f"Archivos en translations: {list(translations_path.glob('*.json'))}")
+
+import subprocess
+from gi import require_version
+require_version('Gtk', '4.0')
+from gi.repository import Gtk, Gdk, GLib
+from .config import load_config, save_config
+from .composer import compose_image
+from .monitor_row import MonitorRow
+from .utils import pil_to_pixbuf
+
+
+# Detectar si estamos en Docker
+def is_running_in_docker():
+    return os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv')
+
+# Usar directorio compartido con el host
+if is_running_in_docker():
+    TMP_OUTPUT = str(Path.home() / ".config" / "multiwall" / "current_wallpaper.jpg")
+else:
+    TMP_OUTPUT = "/tmp/multiwall_combined.jpg"
+
+
+def get_default_pictures_directory():
+    """Obtiene el directorio de imágenes predeterminado del sistema."""
+    try:
+        # Intentar obtener desde XDG user dirs
+        result = subprocess.run(
+            ['xdg-user-dir', 'PICTURES'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        pictures_dir = result.stdout.strip()
+        if pictures_dir and os.path.exists(pictures_dir):
+            print(f"Directorio de imágenes del sistema: {pictures_dir}")
+            return pictures_dir
+    except Exception as e:
+        print(f"No se pudo obtener xdg-user-dir: {e}")
+    
+    # Fallback: intentar ubicaciones comunes según el idioma
+    home = Path.home()
+    common_names = ['Pictures', 'Imágenes', 'Images', 'Bilder', 'Imagenes']
+    
+    for name in common_names:
+        candidate = home / name
+        if candidate.exists():
+            print(f"Directorio de imágenes encontrado: {candidate}")
+            return str(candidate)
+    
+    # Último fallback: HOME
+    print(f"Usando directorio HOME como fallback: {home}")
+    return str(home)
+
+
+class MultiWallApp(Gtk.Application):
+    def __init__(self, app = None):
+        if not Gdk.Display.get_default():
+            raise RuntimeError(
+                "No se detectó un display. Asegúrate de:\n"
+                "1. Tener DISPLAY configurado (ej: export DISPLAY=:0)\n"
+                "2. Ejecutar en un entorno con GUI (no en contenedor sin X11)\n"
+                "3. Tener permisos de acceso al display"
+            )
+        
+        super().__init__(application_id='com.multiwall.app')
+        self.settings = load_config()
+        # Usar el último directorio guardado, o detectar el del sistema
+        self.last_directory = self.settings.get('last_directory', get_default_pictures_directory())
+        self.connect('activate', self.on_activate)
+
+    def on_activate(self, app):
+        self.window = Gtk.ApplicationWindow(
+            application=app,
+            title=i18n.t('app.title'),
+            default_width=1200,
+            default_height=700
+        )
+        self.build_ui()
+        self.window.present()
+
+    def build_ui(self):
+        main = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=10,
+            margin_top=10,
+            margin_bottom=10,
+            margin_start=10,
+            margin_end=10
+        )
+        self.window.set_child(main)
+
+        header = Gtk.Label(label=f"<b>{i18n.t('app.header')}</b>")
+        header.set_use_markup(True)
+        header.set_margin_bottom(10)
+        main.append(header)
+
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
+        main.append(content)
+
+        # === ÁREA DE PREVIEW ===
+        preview_frame = Gtk.Frame()
+        preview_frame.set_label(i18n.t('app.preview_label'))
+        preview_frame.set_vexpand(True)
+        content.append(preview_frame)
+
+        preview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        preview_box.set_margin_top(10)
+        preview_box.set_margin_bottom(10)
+        preview_box.set_margin_start(10)
+        preview_box.set_margin_end(10)
+        preview_frame.set_child(preview_box)
+
+        self.preview = Gtk.Image()
+        self.preview.set_vexpand(True)
+        preview_box.append(self.preview)
+
+        # === ÁREA DE CONTROLES ===
+        controls_frame = Gtk.Frame()
+        controls_frame.set_label(i18n.t('app.controls_label'))
+        content.append(controls_frame)
+
+        display = Gdk.Display.get_default()
+        monitor_list = display.get_monitors()
+        self.monitors = [monitor_list.get_item(i) for i in range(monitor_list.get_n_items())]
+        saved = self.settings.get('monitors', {})
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_min_content_height(200)
+        scroll.set_max_content_height(250)
+        scroll.set_vexpand(False)
+        controls_frame.set_child(scroll)
+
+        list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        list_box.set_margin_top(10)
+        list_box.set_margin_bottom(10)
+        list_box.set_margin_start(10)
+        list_box.set_margin_end(10)
+        scroll.set_child(list_box)
+
+        self.rows = []
+        for i, mon in enumerate(self.monitors):
+            geom = mon.get_geometry()
+            row = MonitorRow(i, geom, saved.get(str(i), {}), self.on_monitor_changed, self)
+            list_box.append(row)
+            self.rows.append(row)
+
+        # === BOTONES DE ACCIÓN ===
+        btn_box = Gtk.Box(spacing=8, halign=Gtk.Align.CENTER)
+        btn_box.set_margin_top(10)
+        main.append(btn_box)
+
+        preview_btn = Gtk.Button(label=i18n.t('app.buttons.update'))
+        preview_btn.connect('clicked', self.update_preview)
+        preview_btn.add_css_class('suggested-action')
+        btn_box.append(preview_btn)
+
+        apply_btn = Gtk.Button(label=i18n.t('app.buttons.apply'))
+        apply_btn.connect('clicked', self.on_apply)
+        apply_btn.add_css_class('suggested-action')
+        btn_box.append(apply_btn)
+
+        self.update_preview()
+
+    def gather_states(self):
+        return {str(r.index): r.get_state() for r in self.rows}
+
+    def update_preview(self, *_):
+        try:
+            print("=== Actualizando preview ===")
+            states = self.gather_states()
+            print(f"Estados: {states}")
+            print(f"Monitores: {len(self.monitors)}")
+            
+            preview = compose_image(self.monitors, states, scale_preview=1000)
+            print(f"Preview generado: {preview.size}")
+            
+            self.preview.clear()
+            
+            pix = pil_to_pixbuf(preview.convert('RGB'))
+            print(f"Pixbuf creado: {pix.get_width()}x{pix.get_height()}")
+            
+            self.preview.set_from_pixbuf(pix)
+            print("Preview actualizado correctamente")
+        except Exception as e:
+            print('Error en preview:', e)
+            import traceback
+            traceback.print_exc()
+
+    def on_monitor_changed(self, *_):
+        self.update_preview()
+        # Guardar configuración automáticamente cuando cambia algo
+        save_config({
+            'monitors': self.gather_states(),
+            'last_directory': self.last_directory
+        })
+
+    def on_apply(self, *_):
+        try:
+            # Guardar configuración automáticamente antes de aplicar (incluyendo último directorio)
+            save_config({
+                'monitors': self.gather_states(),
+                'last_directory': self.last_directory
+            })
+            
+            # Generar imagen combinada
+            combined = compose_image(self.monitors, self.gather_states())
+            
+            # Asegurar que el directorio existe
+            output_path = Path(TMP_OUTPUT)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Guardar imagen
+            combined.convert('RGB').save(str(output_path), quality=95)
+            print(f"Wallpaper guardado en: {output_path}")
+            
+            # Intentar aplicar con gsettings (funciona tanto en Docker con D-Bus como fuera)
+            try:
+                subprocess.run([
+                    'gsettings', 'set', 'org.gnome.desktop.background',
+                    'picture-uri', f'file://{output_path}'
+                ], check=True, capture_output=True, text=True)
+                subprocess.run([
+                    'gsettings', 'set', 'org.gnome.desktop.background',
+                    'picture-uri-dark', f'file://{output_path}'
+                ], check=True, capture_output=True, text=True)
+                subprocess.run([
+                    'gsettings', 'set', 'org.gnome.desktop.background',
+                    'picture-options', 'spanned'
+                ], check=True, capture_output=True, text=True)
+                
+                print("✅ Wallpaper aplicado exitosamente con gsettings")
+                dialog = Gtk.AlertDialog(message=i18n.t('app.dialogs.applied'))
+                dialog.show(self.window)
+                
+            except subprocess.CalledProcessError as gsettings_error:
+                # Si falla gsettings (no hay D-Bus), crear script de respaldo
+                print(f"⚠️ gsettings falló: {gsettings_error}")
+                print("Creando script de aplicación manual...")
+                
+                script_path = output_path.parent / "apply_wallpaper.sh"
+                script_content = f"""#!/bin/bash
+gsettings set org.gnome.desktop.background picture-uri 'file://{output_path}'
+gsettings set org.gnome.desktop.background picture-uri-dark 'file://{output_path}'
+gsettings set org.gnome.desktop.background picture-options 'spanned'
+echo "✅ Wallpaper aplicado correctamente"
+"""
+                script_path.write_text(script_content)
+                script_path.chmod(0o755)
+                
+                message = (
+                    f"✅ Wallpaper generado en:\n{output_path}\n\n"
+                    f"⚠️ No se pudo aplicar automáticamente.\n"
+                    f"Para aplicarlo, ejecuta en tu terminal:\n"
+                    f"bash {script_path}"
+                )
+                print(message)
+                
+                dialog = Gtk.AlertDialog(message=message)
+                dialog.show(self.window)
+                
+        except Exception as e:
+            error_msg = str(e)
+            print(f"❌ Error al aplicar wallpaper: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            
+            dialog = Gtk.AlertDialog(
+                message=i18n.t('app.dialogs.error', error=error_msg)
+            )
+            dialog.show(self.window)
+
+    def run(self, argv=None):
+        return super().run(argv)

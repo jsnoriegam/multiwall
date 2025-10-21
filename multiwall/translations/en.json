@@ -1,0 +1,34 @@
+{
+  "en": {
+    "app": {
+      "title": "🖼️ MultiWall - Multi-Monitor Wallpapers",
+      "header": "🖥️ Multi-Monitor Wallpaper Manager",
+      "preview_label": "👁️ Preview",
+      "controls_label": "⚙️ Monitor Settings",
+      "buttons": {
+        "update": "🔄 Update Preview",
+        "save": "💾 Save Configuration",
+        "apply": "✅ Apply Wallpaper"
+      },
+      "dialogs": {
+        "saved": "✅ Configuration saved successfully",
+        "applied": "✅ Wallpaper applied successfully",
+        "error": "❌ Error applying wallpaper: %{error}"
+      }
+    },
+    "monitor": {
+      "title": "🖥️ Monitor %{number}",
+      "image_label": "🖼️ Image:",
+      "select_image": "📁 Select image...",
+      "mode_label": "📐 Mode:",
+      "background_label": "🎨 Background:",
+      "modes": {
+        "fill": "⬜ Fill",
+        "fit": "📏 Fit",
+        "stretch": "↔️ Stretch",
+        "center": "🎯 Center",
+        "tile": "🔲 Tile"
+      }
+    }
+  }
+}
