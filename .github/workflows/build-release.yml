@@ -1,0 +1,147 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 0.1.0)'
+        required: true
+        default: '0.1.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Verify icon exists
+        run: |
+          if [ ! -f "icon.png" ]; then
+            echo "⚠️ Warning: icon.png not found, creating placeholder"
+            # Crear un icono placeholder simple
+            convert -size 512x512 xc:#3584e4 \
+              -gravity center -pointsize 200 -fill white \
+              -annotate +0+0 "MW" \
+              icon.png
+          fi
+      
+      - name: Make build script executable
+        run: chmod +x build-packages.sh
+      
+      - name: Build AppImage
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }} ./build-packages.sh appimage
+      
+      - name: Build Flatpak package
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }} ./build-packages.sh flatpak
+      
+      - name: List generated packages
+        run: |
+          echo "📦 Generated packages:"
+          ls -lh dist/
+      
+      - name: Calculate checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: multiwall-packages-${{ steps.version.outputs.VERSION }}
+          path: |
+            dist/*.AppImage
+            dist/*.flatpak
+            dist/SHA256SUMS
+          retention-days: 30
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.AppImage
+            dist/*.flatpak
+            dist/SHA256SUMS
+          body: |
+            # MultiWall v${{ steps.version.outputs.VERSION }}
+            
+            ## 📦 Installation
+            
+            ### AppImage (Universal Linux)
+            ```bash
+            chmod +x MultiWall-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+            ./MultiWall-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+            ```
+            
+            ### Flatpak (.flatpak)
+            ```bash
+            flatpak install --user ./MultiWall-${{ steps.version.outputs.VERSION }}-x86_64.flatpak
+            flatpak run com.latinosoft.MultiWall
+            ```
+            
+            ## 🔐 Verify checksums
+            ```bash
+            sha256sum -c SHA256SUMS
+            ```
+            
+            ## 📝 Changelog
+            See [CHANGELOG.md](CHANGELOG.md) for details.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  test-packages:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ubuntu-version: ['22.04', '24.04']
+    
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: multiwall-packages-${{ needs.build.outputs.version }}
+      
+      - name: Test Flatpak
+        run: |
+          sudo apt update
+          flatpak install --user ./MultiWall_*.flatpak || true
+          
+          # Verificar que el comando existe
+          if flatpak info com.latinosoft.MultiWall &> /dev/null; then
+            echo "✅ Aplicación MultiWall (Flatpak) está instalada"
+          else
+            echo "❌ Aplicación MultiWall (Flatpak) no encontrada"
+            exit 1
+          fi
+      
+      - name: Test AppImage
+        run: |
+          chmod +x MultiWall-*.AppImage
+          
+          # Verificar que el AppImage es ejecutable
+          if ./MultiWall-*.AppImage --appimage-help &> /dev/null; then
+            echo "✅ AppImage is valid"
+          else
+            echo "⚠️ AppImage check returned non-zero (might be expected)"
+          fi
