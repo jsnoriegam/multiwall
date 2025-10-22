@@ -34,13 +34,13 @@ fi
 mkdir -p appimage
 
 # Copiar icono con el nombre correcto para Flatpak
-magick "${SRC_ICON}" -resize 256x256 "appimage/icon.png"
+"${IMAGEMAGICK_BIN}" "${SRC_ICON}" -resize 256x256 "appimage/icon.png"
 
 # Crear directorio flatpak si no existe
 mkdir -p flatpak
 
 # Copiar icono con el nombre correcto para Flatpak
-magick "${SRC_ICON}" -resize 512x512 "flatpak/com.latinosoft.MultiWall.png"
+"${IMAGEMAGICK_BIN}" "${SRC_ICON}" -resize 512x512 "flatpak/com.latinosoft.MultiWall.png"
 
 echo "✅ Icono copiado a flatpak/com.latinosoft.MultiWall.png"
 
