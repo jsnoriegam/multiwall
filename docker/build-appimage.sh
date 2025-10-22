@@ -70,11 +70,14 @@ Categories=Utility;Graphics;GTK;
 Terminal=false
 EOF
 
+# Copiar .desktop también a la raíz del AppDir (requisito de appimagetool)
+cp "$APP_DIR/usr/share/applications/multiwall.desktop" "$APP_DIR/multiwall.desktop"
+
 # Copiar icono (usar el existente en la raíz)
 if [ -f "/app/icon.png" ]; then
     echo "📸 Usando icono existente..."
     cp /app/icon.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.png"
-    cp /app/icon.png "$APP_DIR/multiwall.png"
+    cp /app/icon.png "$APP_DIR/multiwall.png"    # <-- copiar icon a la raíz del AppDir
 else
     echo "⚠️ Advertencia: No se encontró icon.png, creando icono por defecto..."
     # Crear icono simple SVG como fallback
@@ -85,6 +88,7 @@ else
   <text x="128" y="140" font-size="120" text-anchor="middle" fill="white">🖼️</text>
 </svg>
 EOF
+    # copiar fallback SVG al root del AppDir (appimagetool detecta svg también)
     cp "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.svg" "$APP_DIR/multiwall.svg"
 fi
 

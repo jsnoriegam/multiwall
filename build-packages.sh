@@ -6,7 +6,7 @@ CYAN="\e[36m"
 YELLOW="\e[33m"
 RESET="\e[0m"
 
-VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION:-0.1.0}"
 OUTPUT_DIR="$(pwd)/dist"
 
 echo -e "${CYAN}=== MultiWall Package Builder ===${RESET}"

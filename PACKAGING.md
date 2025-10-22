@@ -17,7 +17,7 @@ Este documento explica cómo generar paquetes AppImage y Flatpak de MultiWall us
 ```
 
 Esto generará:
-- `dist/MultiWall-1.0.0-x86_64.AppImage`
+- `dist/MultiWall-0.1.0-x86_64.AppImage`
 - `dist/MultiWall.flatpak`
 
 ### Generar solo AppImage
@@ -63,13 +63,13 @@ multiwall/
 
 ```bash
 # Dar permisos de ejecución
-chmod +x dist/MultiWall-1.0.0-x86_64.AppImage
+chmod +x dist/MultiWall-0.1.0-x86_64.AppImage
 
 # Ejecutar
-./dist/MultiWall-1.0.0-x86_64.AppImage
+./dist/MultiWall-0.1.0-x86_64.AppImage
 
 # Opcional: Instalar en el sistema
-sudo cp dist/MultiWall-1.0.0-x86_64.AppImage /usr/local/bin/multiwall
+sudo cp dist/MultiWall-0.1.0-x86_64.AppImage /usr/local/bin/multiwall
 ```
 
 ### Flatpak
@@ -91,7 +91,7 @@ flatpak run com.latinosoft.MultiWall
 
 ```bash
 # Extraer y ejecutar manualmente
-./MultiWall-1.0.0-x86_64.AppImage --appimage-extract
+./MultiWall-0.1.0-x86_64.AppImage --appimage-extract
 ./squashfs-root/AppRun
 ```
 
