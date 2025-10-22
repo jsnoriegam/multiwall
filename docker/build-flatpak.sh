@@ -6,20 +6,19 @@ echo "🔨 Construyendo MultiWall Flatpak..."
 APP_ID="com.latinosoft.MultiWall"
 BUILD_DIR="/build/flatpak-build"
 REPO_DIR="/build/flatpak-repo"
+VERSION="${VERSION:-0.1.0}"
 
 # Crear directorios
 mkdir -p "$BUILD_DIR"
 mkdir -p "$REPO_DIR"
 
-# Construir Flatpak con acceso a red
+# Construir Flatpak (sin --user porque el SDK ya está instalado system-wide)
 echo "📦 Construyendo con flatpak-builder..."
 flatpak-builder \
     --force-clean \
     --repo="$REPO_DIR" \
-    --install-deps-from=flathub \
-    --ccache \
-    --require-changes \
-    --allow-missing-runtimes \
+    --disable-rofiles-fuse \
+    --disable-download \
     "$BUILD_DIR" \
     /app/flatpak/${APP_ID}.yml
 
@@ -27,8 +26,8 @@ flatpak-builder \
 echo "🎁 Creando bundle..."
 flatpak build-bundle \
     "$REPO_DIR" \
-    "/output/MultiWall.flatpak" \
+    "/output/MultiWall-${VERSION}-x86_64.flatpak" \
     "$APP_ID"
 
-echo "✅ Flatpak creado: /output/MultiWall.flatpak"
+echo "✅ Flatpak creado: /output/MultiWall-${VERSION}-x86_64.flatpak"
 ls -lh /output/*.flatpak

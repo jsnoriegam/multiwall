@@ -1,6 +1,6 @@
 app-id: com.latinosoft.MultiWall
 runtime: org.gnome.Platform
-runtime-version: '46'
+runtime-version: '48'
 sdk: org.gnome.Sdk
 command: multiwall
 
@@ -41,6 +41,7 @@ modules:
   - name: multiwall
     buildsystem: simple
     build-commands:
+      - mkdir -p /app/bin
       - mkdir -p /app/share/multiwall
       - cp -r multiwall /app/share/multiwall/
       - cp main.py /app/share/multiwall/
@@ -61,8 +62,9 @@ modules:
       
       # Instalar icono (usar icon.png de la raíz si existe)
       - |
-        if [ -f icon.png ]; then
-          install -Dm644 icon.png /app/share/icons/hicolor/512x512/apps/com.latinosoft.MultiWall.png
+        if [ -f flatpak/icons/com.latinosoft.MultiWall-512.png ]; then
+          install -Dm644 flatpak/icons/com.latinosoft.MultiWall-256.png /app/share/icons/hicolor/256x256/apps/com.latinosoft.MultiWall.png
+          install -Dm644 flatpak/icons/com.latinosoft.MultiWall-512.png /app/share/icons/hicolor/512x512/apps/com.latinosoft.MultiWall.png
         else
           install -Dm644 flatpak/com.latinosoft.MultiWall.svg /app/share/icons/hicolor/scalable/apps/com.latinosoft.MultiWall.svg
         fi

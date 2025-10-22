@@ -12,6 +12,15 @@ OUTPUT_DIR="$(pwd)/dist"
 echo -e "${CYAN}=== MultiWall Package Builder ===${RESET}"
 echo -e "${YELLOW}Version: ${VERSION}${RESET}"
 
+# --- NUEVO: Procesamiento del argumento 'rebuild' ---
+FORCE_REBUILD=false
+if [[ "$1" == "rebuild" ]]; then
+    FORCE_REBUILD=true
+    shift # Elimina 'rebuild' de la lista de argumentos
+    echo -e "${YELLOW}⚡ Reconstrucción forzada de imágenes de Docker HABILITADA${RESET}"
+fi
+# --------------------------------------------------
+
 # Verificar que existe el icono
 if [ ! -f "icon.png" ]; then
     echo -e "${YELLOW}⚠️ Advertencia: No se encontró icon.png en la raíz${RESET}"
@@ -21,30 +30,36 @@ fi
 # Crear directorio de salida
 mkdir -p "$OUTPUT_DIR"
 
-# Función para mostrar uso
+# --- MODIFICADO: Función de uso actualizada ---
 usage() {
-    echo "Uso: $0 [appimage|flatpak|all]"
+    echo "Uso: $0 [rebuild] [appimage|flatpak|all]"
     echo ""
-    echo "Opciones:"
+    echo "Argumentos:"
+    echo "  rebuild   - Forzar la reconstrucción de las imágenes de Docker antes de construir"
     echo "  appimage  - Generar AppImage"
     echo "  flatpak   - Generar Flatpak"
     echo "  all       - Generar ambos (por defecto)"
     exit 1
 }
 
-# Función para construir AppImage
+# --- MODIFICADO: Función para construir AppImage ---
 build_appimage() {
     echo -e "${GREEN}→ Construyendo AppImage...${RESET}"
     
-    # Construir imagen de Docker si no existe
-    if [[ "$(docker images -q multiwall-appimage 2> /dev/null)" == "" ]]; then
-        echo "Construyendo imagen de Docker para AppImage..."
+    # Construir imagen de Docker si no existe O si se fuerza
+    if [[ "$FORCE_REBUILD" == "true" ]] || [[ "$(docker images -q multiwall-appimage 2> /dev/null)" == "" ]]; then
+        if [[ "$FORCE_REBUILD" == "true" ]]; then
+            echo "Construyendo imagen de Docker para AppImage (forzado)..."
+        else
+            echo "Construyendo imagen de Docker para AppImage..."
+        fi
         docker build -f docker/Dockerfile.appimage -t multiwall-appimage docker/
     fi
     
     # Ejecutar construcción
     docker run --rm \
-        -v "$(pwd):/app:ro" \
+        -it \
+        -v "$(pwd):/app" \
         -v "$OUTPUT_DIR:/output" \
         -e VERSION="$VERSION" \
         multiwall-appimage
@@ -52,7 +67,7 @@ build_appimage() {
     echo -e "${GREEN}✅ AppImage generado en: ${OUTPUT_DIR}/MultiWall-${VERSION}-x86_64.AppImage${RESET}"
 }
 
-# Función para construir Flatpak
+# --- MODIFICADO: Función para construir Flatpak ---
 build_flatpak() {
     echo -e "${GREEN}→ Construyendo Flatpak...${RESET}"
     
@@ -62,14 +77,20 @@ build_flatpak() {
         mkdir -p flatpak
     fi
     
-    # Construir imagen de Docker si no existe
-    if [[ "$(docker images -q multiwall-flatpak 2> /dev/null)" == "" ]]; then
-        echo "Construyendo imagen de Docker para Flatpak..."
+    # Construir imagen de Docker si no existe O si se fuerza
+    if [[ "$FORCE_REBUILD" == "true" ]] || [[ "$(docker images -q multiwall-flatpak 2> /dev/null)" == "" ]]; then
+        if [[ "$FORCE_REBUILD" == "true" ]]; then
+            echo "Construyendo imagen de Docker para Flatpak (forzado)..."
+        else
+            echo "Construyendo imagen de Docker para Flatpak..."
+        fi
         docker build -f docker/Dockerfile.flatpak -t multiwall-flatpak docker/
     fi
     
     # Ejecutar construcción con acceso a red
     docker run --rm \
+        -it \
+        --privileged \
         -v "$(pwd):/app:ro" \
         -v "$OUTPUT_DIR:/output" \
         -e VERSION="$VERSION" \
@@ -79,7 +100,7 @@ build_flatpak() {
     echo -e "${GREEN}✅ Flatpak generado en: ${OUTPUT_DIR}/MultiWall.flatpak${RESET}"
 }
 
-# Procesar argumentos
+# --- MODIFICADO: Procesar argumentos (ahora usa $1 después del shift) ---
 TARGET="${1:-all}"
 
 case "$TARGET" in
