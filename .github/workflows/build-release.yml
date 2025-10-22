@@ -30,6 +30,9 @@ jobs:
           else
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           fi
+          
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
       
       - name: Make icon setup executable
         run: chmod +x setup-icon.sh
