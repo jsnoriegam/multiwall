@@ -58,7 +58,6 @@ build_appimage() {
     
     # Ejecutar construcción
     docker run --rm \
-        -it \
         -v "$(pwd):/app" \
         -v "$OUTPUT_DIR:/output" \
         -e VERSION="$VERSION" \
@@ -89,7 +88,6 @@ build_flatpak() {
     
     # Ejecutar construcción con acceso a red
     docker run --rm \
-        -it \
         --privileged \
         -v "$(pwd):/app:ro" \
         -v "$OUTPUT_DIR:/output" \
