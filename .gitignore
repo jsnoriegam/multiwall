@@ -1,8 +1,11 @@
 .venv
-multiwall/__pycache__/
+multiwall/__pycache__
 multiwall/*.pyc
 __pycache__/
 *.pyc
 .DS_Store
 .vscode/
 .idea/
+dist
+flatpak/icons
+flatpak/com.latinosoft.MultiWall.png

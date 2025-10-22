@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.latinosoft.MultiWall</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>MultiWall</name>
+  <summary>Multi-Monitor Wallpaper Manager</summary>
+  <description>
+    <p>
+      MultiWall is a GTK4 application that allows you to set different wallpapers
+      for each monitor in a multi-monitor setup. It supports various display modes
+      (fill, fit, stretch, center, tile) and provides a real-time preview of your
+      wallpaper configuration.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Individual wallpaper configuration for each monitor</li>
+      <li>Multiple display modes (fill, fit, stretch, center, tile)</li>
+      <li>Real-time preview of wallpaper layout</li>
+      <li>Custom background colors</li>
+      <li>Auto-save configuration</li>
+      <li>Multi-language support (English, Spanish)</li>
+    </ul>
+  </description>
+  
+  <launchable type="desktop-id">com.latinosoft.MultiWall.desktop</launchable>
+  
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main window with preview</caption>
+    </screenshot>
+  </screenshots>
+  
+  <url type="homepage">https://github.com/jsnoriegam/multiwall</url>
+  <url type="bugtracker">https://github.com/jsnoriegam/multiwall/issues</url>
+  
+  <content_rating type="oars-1.1" />
+  
+  <releases>
+    <release version="0.1.0" date="2025-01-01">
+      <description>
+        <p>Initial release</p>
+      </description>
+    </release>
+  </releases>
+</component>

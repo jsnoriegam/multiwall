@@ -77,9 +77,9 @@ DOCKER_FLAGS=(
   -e DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$USER_ID/bus"
   -e XDG_RUNTIME_DIR=/run/user/$USER_ID
   -e GSETTINGS_BACKEND=dconf
+  -e HOME=$HOME
   -v "$RUNTIME_DIR/bus:/run/user/$USER_ID/bus"
   -v "$PWD:/app"
-  -e HOME=$HOME
   -v "$HOME/.config/dconf:$HOME/.config/dconf:rw"
   -v "$PICTURES_DIR:$PICTURES_DIR:ro"
   -v "$HOME/.config/multiwall:$HOME/.config/multiwall:rw"

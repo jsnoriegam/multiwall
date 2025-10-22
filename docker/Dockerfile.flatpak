@@ -1,0 +1,21 @@
+FROM fedora:39
+
+# Instalar flatpak-builder y dependencias
+RUN dnf install -y \
+    flatpak flatpak-builder \
+    git \
+    && dnf clean all
+
+# Añadir repositorio de Flathub
+RUN flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+# Instalar SDK necesario
+RUN flatpak install -y flathub org.gnome.Platform//46 org.gnome.Sdk//46
+
+WORKDIR /build
+
+# Script de construcción
+COPY build-flatpak.sh /build/
+RUN chmod +x /build/build-flatpak.sh
+
+ENTRYPOINT ["/build/build-flatpak.sh"]

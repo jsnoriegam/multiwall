@@ -1,0 +1,75 @@
+app-id: com.latinosoft.MultiWall
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+command: multiwall
+
+finish-args:
+  # Acceso a X11 y Wayland
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  
+  # Acceso a archivos de usuario
+  - --filesystem=xdg-pictures:ro
+  - --filesystem=xdg-config/multiwall:create
+  
+  # Acceso a D-Bus para gsettings
+  - --socket=session-bus
+  - --talk-name=org.gnome.Shell
+  - --talk-name=org.freedesktop.portal.Desktop
+  
+  # Acceso a configuración de GNOME
+  - --filesystem=xdg-config/dconf:rw
+  - --env=DCONF_USER_CONFIG_DIR=.config/dconf
+  
+  # GPU para preview
+  - --device=dri
+
+modules:
+  # Dependencias de Python (con acceso a red durante build)
+  - name: python3-dependencies
+    buildsystem: simple
+    build-options:
+      build-args:
+        - --share=network
+    build-commands:
+      - pip3 install --prefix=/app --no-cache-dir Pillow pyyaml python-i18n
+    sources: []
+    
+  # Aplicación principal
+  - name: multiwall
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/share/multiwall
+      - cp -r multiwall /app/share/multiwall/
+      - cp main.py /app/share/multiwall/
+      - cp requirements.txt /app/share/multiwall/
+      
+      # Crear script de lanzamiento
+      - |
+        cat > /app/bin/multiwall << 'EOF'
+        #!/bin/bash
+        export PYTHONPATH="/app/share/multiwall:$PYTHONPATH"
+        cd /app/share/multiwall
+        exec python3 main.py "$@"
+        EOF
+      - chmod +x /app/bin/multiwall
+      
+      # Instalar archivo desktop
+      - install -Dm644 flatpak/com.latinosoft.MultiWall.desktop /app/share/applications/com.latinosoft.MultiWall.desktop
+      
+      # Instalar icono (usar icon.png de la raíz si existe)
+      - |
+        if [ -f icon.png ]; then
+          install -Dm644 icon.png /app/share/icons/hicolor/512x512/apps/com.latinosoft.MultiWall.png
+        else
+          install -Dm644 flatpak/com.latinosoft.MultiWall.svg /app/share/icons/hicolor/scalable/apps/com.latinosoft.MultiWall.svg
+        fi
+      
+      # Instalar metainfo
+      - install -Dm644 flatpak/com.latinosoft.MultiWall.metainfo.xml /app/share/metainfo/com.latinosoft.MultiWall.metainfo.xml
+    
+    sources:
+      - type: dir
+        path: ..

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=MultiWall
+Comment=Multi-Monitor Wallpaper Manager
+Comment[es]=Gestor de Fondos de Pantalla Multi-Monitor
+Exec=multiwall
+Icon=com.latinosoft.MultiWall
+Type=Application
+Categories=Utility;Graphics;GTK;GNOME;
+Keywords=wallpaper;background;multimonitor;
+Terminal=false
+StartupNotify=true
