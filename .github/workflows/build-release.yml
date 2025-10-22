@@ -38,7 +38,7 @@ jobs:
           fi
 
       - name: Install ImageMagick
-        run: sudo apt-get update && sudo apt-get install -y imagemagick
+        run: sudo apt update && sudo apt-get install -y imagemagick
       
       - name: Make icon setup executable
         run: chmod +x setup-icon.sh
@@ -128,12 +128,31 @@ jobs:
       
       - name: Test Flatpak
         run: |
-          sudo apt update
-          flatpak install --user ./MultiWall_*.flatpak || true
+          # Instalar Flatpak
+          sudo apt-get update
+          sudo apt-get install -y flatpak
           
-          # Verificar que el comando existe
+          # Agregar repositorio Flathub
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          
+          # Encontrar el archivo .flatpak
+          FLATPAK_FILE=$(ls MultiWall-*.flatpak 2>/dev/null | head -n 1)
+          
+          if [ -z "$FLATPAK_FILE" ]; then
+            echo "❌ No se encontró archivo .flatpak"
+            ls -la
+            exit 1
+          fi
+          
+          echo "📦 Instalando: $FLATPAK_FILE"
+          
+          # Instalar el Flatpak
+          flatpak install --user -y "$FLATPAK_FILE"
+          
+          # Verificar instalación
           if flatpak info com.latinosoft.MultiWall &> /dev/null; then
             echo "✅ Aplicación MultiWall (Flatpak) está instalada"
+            flatpak info com.latinosoft.MultiWall
           else
             echo "❌ Aplicación MultiWall (Flatpak) no encontrada"
             exit 1
@@ -141,11 +160,31 @@ jobs:
       
       - name: Test AppImage
         run: |
-          chmod +x MultiWall-*.AppImage
+          sudo apt-get update
+          sudo apt-get install -y file
           
-          # Verificar que el AppImage es ejecutable
-          if ./MultiWall-*.AppImage --appimage-help &> /dev/null; then
-            echo "✅ AppImage is valid"
+          # Encontrar el archivo AppImage
+          APPIMAGE_FILE=$(ls MultiWall-*.AppImage 2>/dev/null | head -n 1)
+          
+          if [ -z "$APPIMAGE_FILE" ]; then
+            echo "❌ No se encontró archivo .AppImage"
+            ls -la
+            exit 1
+          fi
+          
+          echo "📦 Verificando: $APPIMAGE_FILE"
+          
+          # Hacer ejecutable
+          chmod +x "$APPIMAGE_FILE"
+          
+          # Verificar tipo de archivo
+          FILE_TYPE=$(file "$APPIMAGE_FILE")
+          echo "Tipo: $FILE_TYPE"
+          
+          if echo "$FILE_TYPE" | grep -q "ELF.*executable"; then
+            echo "✅ AppImage es válido"
+            ls -lh "$APPIMAGE_FILE"
           else
-            echo "⚠️ AppImage check returned non-zero (might be expected)"
+            echo "❌ AppImage no es un ejecutable válido"
+            exit 1
           fi
