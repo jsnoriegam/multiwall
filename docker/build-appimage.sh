@@ -76,8 +76,8 @@ cp "$APP_DIR/usr/share/applications/multiwall.desktop" "$APP_DIR/multiwall.deskt
 # Copiar icono (usar el existente en la raíz)
 if [ -f "/app/icon.png" ]; then
     echo "📸 Usando icono existente..."
-    cp /app/icon.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.png"
-    cp /app/icon.png "$APP_DIR/multiwall.png"    # <-- copiar icon a la raíz del AppDir
+    cp /app/appimage/icon.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.png"
+    cp /app/appimage/icon.png "$APP_DIR/multiwall.png"    # <-- copiar icon a la raíz del AppDir
 else
     echo "⚠️ Advertencia: No se encontró icon.png, creando icono por defecto..."
     # Crear icono simple SVG como fallback

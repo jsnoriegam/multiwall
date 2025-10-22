@@ -31,19 +31,14 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           fi
       
-      - name: Verify icon exists
-        run: |
-          if [ ! -f "icon.png" ]; then
-            echo "⚠️ Warning: icon.png not found, creating placeholder"
-            # Crear un icono placeholder simple
-            convert -size 512x512 xc:#3584e4 \
-              -gravity center -pointsize 200 -fill white \
-              -annotate +0+0 "MW" \
-              icon.png
-          fi
-      
+      - name: Make icon setup executable
+        run: chmod +x setup-icon.sh
+
       - name: Make build script executable
         run: chmod +x build-packages.sh
+
+      - name: Setup icons
+        run: ./setup-icon.sh        
       
       - name: Build AppImage
         run: |

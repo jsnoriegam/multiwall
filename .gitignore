@@ -8,4 +8,5 @@ __pycache__/
 .idea/
 dist
 flatpak/icons
-flatpak/com.latinosoft.MultiWall.png
+flatpak/*.png
+appimage/*.png

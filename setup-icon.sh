@@ -9,11 +9,17 @@ if [ ! -f "icon.png" ]; then
     exit 1
 fi
 
+# Crear directorio appimage si no existe
+mkdir -p appimage
+
+# Copiar icono con el nombre correcto para Flatpak
+magick icon.png -resize 256x256 "appimage/icon.png"
+
 # Crear directorio flatpak si no existe
 mkdir -p flatpak
 
 # Copiar icono con el nombre correcto para Flatpak
-cp icon.png flatpak/com.latinosoft.MultiWall.png
+magick icon.png -resize 512x512 "flatpak/com.latinosoft.MultiWall.png"
 
 echo "✅ Icono copiado a flatpak/com.latinosoft.MultiWall.png"
 
