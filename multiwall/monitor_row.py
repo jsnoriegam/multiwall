@@ -5,7 +5,7 @@ from gi import require_version
 require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gdk, Gio
 
-IMAGE_FILTERS = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp"]
+IMAGE_FILTERS = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp", "*.avif"]
 DEFAULT_OPTIONS = {'background': '#000000'}
 
 class MonitorRow(Gtk.Box):
@@ -151,6 +151,16 @@ class MonitorRow(Gtk.Box):
         except Exception as e:
             # Usuario canceló o hubo error
             pass
+
+    def set_image_file(self, file_path):
+        """Establece la imagen para este monitor (usado desde el sidebar)."""
+        if os.path.exists(file_path):
+            self.selected_file = file_path
+            self.file_button.set_label(os.path.basename(file_path))
+            print(f"Monitor {self.index}: Imagen establecida desde sidebar - {file_path}")
+            
+            # Actualizar el último directorio usado
+            self.app.last_directory = str(Path(file_path).parent)
 
     def get_state(self):
         mode = self.mode_map[self.combo.get_selected()]

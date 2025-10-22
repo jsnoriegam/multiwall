@@ -55,11 +55,12 @@ if translations_path.exists():
 import subprocess
 from gi import require_version
 require_version('Gtk', '4.0')
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, GdkPixbuf, Gio
 from .config import load_config, save_config
 from .composer import compose_image
 from .monitor_row import MonitorRow
 from .utils import pil_to_pixbuf
+from .image_sidebar import ImageSidebar
 
 
 # Detectar si estamos en Docker
@@ -132,6 +133,11 @@ class MultiWallApp(Gtk.Application):
         self.window.present()
 
     def build_ui(self):
+        # Contenedor principal horizontal: contenido + sidebar
+        main_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.window.set_child(main_container)
+
+        # === ÁREA PRINCIPAL ===
         main = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=10,
@@ -140,7 +146,8 @@ class MultiWallApp(Gtk.Application):
             margin_start=10,
             margin_end=10
         )
-        self.window.set_child(main)
+        main.set_hexpand(True)
+        main_container.append(main)
 
         header = Gtk.Label(label=f"<b>{i18n.t('app.header')}</b>")
         header.set_use_markup(True)
@@ -212,7 +219,83 @@ class MultiWallApp(Gtk.Application):
         apply_btn.add_css_class('suggested-action')
         btn_box.append(apply_btn)
 
+        # === SIDEBAR DE IMÁGENES (al final, a la derecha) ===
+        self.sidebar = ImageSidebar(self.last_directory, self.on_image_selected)
+        main_container.append(self.sidebar)
+
+        # Evitar que el sidebar compita por espacio: que no expanda horizontalmente
+        self.sidebar.set_hexpand(False)
+        self.sidebar.set_vexpand(True)
+        main.set_hexpand(True)
+
+        # Ajustar ancho del sidebar entre 20% y 30% mediante polling ligero.
+        # GTK4 no tiene la señal 'size-allocate' en ApplicationWindow, por eso
+        # usamos un pequeño timer que solo actualiza cuando cambia el ancho.
+        self._last_window_width = 0
+
+        def _poll_window_size():
+            try:
+                # GTK4: usar get_allocated_width en lugar de get_size
+                total_w = self.window.get_allocated_width()
+                if total_w != self._last_window_width and total_w > 0:
+                    self._last_window_width = total_w
+                    min_px = 180
+                    target = int(total_w * 0.25)  # objetivo ~25%
+                    target = max(min_px, target)
+                    max_allowed = int(total_w * 0.30)
+                    if target > max_allowed:
+                        target = max_allowed
+                    try:
+                        self.sidebar.set_size_request(target, -1)
+                    except Exception:
+                        pass
+            except Exception as e:
+                print("Error en poll_window_size:", e)
+            return True
+
+        GLib.timeout_add(150, _poll_window_size)
+
         self.update_preview()
+
+    def on_image_selected(self, image_path, button):
+        """Callback cuando se selecciona una imagen del sidebar."""
+        print(f"Imagen seleccionada: {image_path}")
+        
+        # Crear menú popover
+        menu = Gio.Menu()
+        
+        # Agregar opción para cada monitor
+        for i in range(len(self.monitors)):
+            menu.append(i18n.t('monitor.title', number=i+1), f"app.set-monitor-{i}")
+        
+        # Crear popover con el menú
+        popover = Gtk.PopoverMenu()
+        popover.set_menu_model(menu)
+        popover.set_parent(button)
+        popover.set_has_arrow(True)
+        
+        # Limpiar acciones previas si existen
+        for i in range(len(self.monitors)):
+            action_name = f"set-monitor-{i}"
+            if self.lookup_action(action_name):
+                self.remove_action(action_name)
+        
+        # Crear acciones para cada monitor
+        for i in range(len(self.monitors)):
+            action = Gio.SimpleAction.new(f"set-monitor-{i}", None)
+            action.connect("activate", lambda a, p, idx=i, path=image_path, pv=popover: self.assign_image_to_monitor(idx, path, pv))
+            self.add_action(action)
+        
+        # Mostrar el popover
+        popover.popup()
+
+    def assign_image_to_monitor(self, monitor_idx, image_path, popover):
+        """Asigna una imagen a un monitor específico."""
+        print(f"Asignando imagen {image_path} al monitor {monitor_idx}")
+        self.rows[monitor_idx].set_image_file(image_path)
+        self.on_monitor_changed()
+        # Cerrar el popover después de seleccionar
+        popover.popdown()
 
     def gather_states(self):
         return {str(r.index): r.get_state() for r in self.rows}

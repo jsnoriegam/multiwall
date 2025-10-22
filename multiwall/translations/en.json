@@ -13,7 +13,9 @@
       "dialogs": {
         "saved": "✅ Configuration saved successfully",
         "applied": "✅ Wallpaper applied successfully",
-        "error": "❌ Error applying wallpaper: %{error}"
+        "error": "❌ Error applying wallpaper: %{error}",
+        "select_monitor": "Select monitor for this image",
+        "cancel": "Cancel"
       }
     },
     "monitor": {
@@ -29,6 +31,12 @@
         "center": "🎯 Center",
         "tile": "🔲 Tile"
       }
+    },
+    "sidebar": {
+      "title": "📁 Image Gallery",
+      "change_folder": "Change folder",
+      "refresh": "Refresh images",
+      "select_folder": "Select images folder"
     }
   }
 }

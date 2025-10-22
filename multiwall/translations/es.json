@@ -13,7 +13,9 @@
       "dialogs": {
         "saved": "✅ Configuración guardada exitosamente",
         "applied": "✅ Fondo aplicado exitosamente",
-        "error": "❌ Error al aplicar el fondo: %{error}"
+        "error": "❌ Error al aplicar el fondo: %{error}",
+        "select_monitor": "Selecciona el monitor para esta imagen",
+        "cancel": "Cancelar"
       }
     },
     "monitor": {
@@ -29,6 +31,12 @@
         "center": "🎯 Centrar",
         "tile": "🔲 Mosaico"
       }
+    },
+    "sidebar": {
+      "title": "📁 Galería de Imágenes",
+      "change_folder": "Cambiar carpeta",
+      "refresh": "Actualizar imágenes",
+      "select_folder": "Seleccionar carpeta de imágenes"
     }
   }
 }
