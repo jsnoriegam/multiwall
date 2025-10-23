@@ -1,5 +1,5 @@
 """
-Módulo para aplicar wallpapers que funciona tanto en Flatpak como nativo.
+Module for applying wallpapers that works in both Flatpak and native environments.
 """
 import os
 import subprocess
@@ -9,25 +9,33 @@ from .logger import get_logger
 
 logger = get_logger(__name__)
 
+
 def is_running_in_flatpak():
-    """Detecta si estamos corriendo dentro de un Flatpak."""
-    return os.path.exists('/.flatpak-info')
+    """Detect if running inside a Flatpak container."""
+    in_flatpak = os.path.exists('/.flatpak-info')
+    logger.debug(f"Running in Flatpak: {in_flatpak}")
+    return in_flatpak
 
 
 def is_running_in_docker():
-    """Detecta si estamos corriendo dentro de Docker."""
-    return os.path.exists('/.dockerenv')
+    """Detect if running inside a Docker container."""
+    in_docker = os.path.exists('/.dockerenv')
+    logger.debug(f"Running in Docker: {in_docker}")
+    return in_docker
 
 
 def get_wallpaper_path():
-    """Obtiene la ruta donde guardar el wallpaper según el entorno."""
+    """Get path where wallpaper should be saved based on environment."""
     config_dir = Path.home() / ".config" / "multiwall"
     config_dir.mkdir(parents=True, exist_ok=True)
-    return str(config_dir / "current_wallpaper.jpg")
+    wallpaper_path = str(config_dir / "current_wallpaper.jpg")
+    logger.debug(f"Wallpaper path: {wallpaper_path}")
+    return wallpaper_path
 
 
 def test_gsettings_access():
-    """Prueba si podemos acceder a gsettings."""
+    """Test if we can access gsettings."""
+    logger.debug("Testing gsettings access...")
     try:
         result = subprocess.run(
             ['gsettings', 'get', 'org.gnome.desktop.background', 'picture-uri'],
@@ -35,20 +43,23 @@ def test_gsettings_access():
             text=True,
             timeout=5
         )
-        logger.debug(f"gsettings test - return code: {result.returncode}")
-        logger.debug(f"gsettings test - stdout: {result.stdout}")
-        logger.debug(f"gsettings test - stderr: {result.stderr}")
-        return result.returncode == 0
+        logger.debug(f"gsettings test return code: {result.returncode}")
+        logger.debug(f"gsettings test stdout: {result.stdout.strip()}")
+        if result.stderr:
+            logger.debug(f"gsettings test stderr: {result.stderr.strip()}")
+        
+        success = result.returncode == 0
+        logger.info(f"gsettings access test: {'PASS' if success else 'FAIL'}")
+        return success
     except Exception as e:
-        logger.error(f"gsettings test failed: {e}")
+        logger.error(f"gsettings test failed with exception: {e}")
         return False
 
 
 def notify_gnome_wallpaper_change():
-    """Notifica a GNOME Shell que el wallpaper cambió usando D-Bus."""
-    logger.debug("Notificando a GNOME Shell sobre el cambio de wallpaper...")
+    """Notify GNOME Shell that wallpaper changed using D-Bus."""
+    logger.debug("Notifying GNOME Shell about wallpaper change...")
     try:
-        # Intentar recargar la configuración de GNOME
         subprocess.run([
             'dbus-send',
             '--session',
@@ -58,149 +69,187 @@ def notify_gnome_wallpaper_change():
             'org.gnome.Shell.Eval',
             'string:Main.loadTheme();'
         ], capture_output=True, timeout=5)
-        logger.debug("Notificación enviada a GNOME Shell")
+        logger.info("GNOME Shell notification sent")
         return True
     except Exception as e:
-        logger.debug(f"Error notificando a GNOME Shell: {e}")
+        logger.warning(f"Error notifying GNOME Shell: {e}")
         return False
 
 
 def apply_wallpaper_native(image_path):
-    """Aplica el wallpaper usando gsettings (método nativo)."""
-    logger.debug(f"Intentando aplicar con gsettings nativo...")
+    """
+    Apply wallpaper using gsettings (native method).
+    
+    Args:
+        image_path: Full path to wallpaper image
+        
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    logger.info("Attempting to apply wallpaper with native gsettings...")
+    
     try:
-        # Probar lectura primero
+        # Test read access first
         if not test_gsettings_access():
-            return False, "No se puede acceder a gsettings"
+            return False, "Cannot access gsettings"
         
         picture_uri = f'file://{image_path}'
+        logger.debug(f"Picture URI: {picture_uri}")
         
-        logger.debug(f"URI con cache-busting: {picture_uri}")
-        
-        # picture-uri
+        # Set picture-uri
+        logger.debug("Setting picture-uri...")
         result = subprocess.run([
             'gsettings', 'set', 'org.gnome.desktop.background',
             'picture-uri', picture_uri
         ], capture_output=True, text=True, timeout=10)
-        logger.debug(f"picture-uri - return code: {result.returncode}")
-        logger.debug(f"picture-uri - stderr: {result.stderr}")
         
         if result.returncode != 0:
-            return False, f"Error al establecer picture-uri: {result.stderr}"
+            logger.error(f"Failed to set picture-uri: {result.stderr}")
+            return False, f"Error setting picture-uri: {result.stderr}"
+        logger.debug("picture-uri set successfully")
         
-        # picture-uri-dark
+        # Set picture-uri-dark
+        logger.debug("Setting picture-uri-dark...")
         result = subprocess.run([
             'gsettings', 'set', 'org.gnome.desktop.background',
             'picture-uri-dark', picture_uri
         ], capture_output=True, text=True, timeout=10)
-        logger.debug(f"picture-uri-dark - return code: {result.returncode}")
+        logger.debug(f"picture-uri-dark set (return code: {result.returncode})")
         
-        # picture-options
+        # Set picture-options to spanned
+        logger.debug("Setting picture-options to 'spanned'...")
         result = subprocess.run([
             'gsettings', 'set', 'org.gnome.desktop.background',
             'picture-options', 'spanned'
         ], capture_output=True, text=True, timeout=10)
-        logger.debug(f"picture-options - return code: {result.returncode}")
+        logger.debug(f"picture-options set (return code: {result.returncode})")
         
-        # Verificar que se aplicó
+        # Verify application
+        logger.debug("Verifying wallpaper was applied...")
         result = subprocess.run([
             'gsettings', 'get', 'org.gnome.desktop.background',
             'picture-uri'
         ], capture_output=True, text=True, timeout=5)
-        logger.debug(f"Verificación - current picture-uri: {result.stdout}")
+        current_uri = result.stdout.strip()
+        logger.info(f"Current picture-uri: {current_uri}")
         
-        # Notificar a GNOME Shell
+        # Notify GNOME Shell
         notify_gnome_wallpaper_change()
         
-        return True, "Wallpaper aplicado exitosamente con gsettings"
+        logger.info("Wallpaper applied successfully with gsettings")
+        return True, "Wallpaper applied successfully with gsettings"
+        
     except subprocess.TimeoutExpired:
-        return False, "Timeout ejecutando gsettings"
+        logger.error("Timeout executing gsettings command")
+        return False, "Timeout executing gsettings"
     except subprocess.CalledProcessError as e:
-        return False, f"Error con gsettings: {e}"
+        logger.error(f"gsettings command failed: {e}")
+        return False, f"Error with gsettings: {e}"
     except Exception as e:
-        return False, f"Error inesperado: {e}"
+        logger.error(f"Unexpected error applying wallpaper: {e}", exc_info=True)
+        return False, f"Unexpected error: {e}"
+
 
 def create_manual_instructions(image_path):
-    """Crea instrucciones manuales para aplicar el wallpaper."""
+    """
+    Create a shell script with manual instructions for applying wallpaper.
+    
+    Args:
+        image_path: Path to wallpaper image
+        
+    Returns:
+        str: Path to created script or None if failed
+    """
+    logger.debug("Creating manual application script...")
     script_path = Path(image_path).parent / "apply_wallpaper.sh"
     script_content = f"""#!/bin/bash
-# Script para aplicar el wallpaper de MultiWall
+# Script to apply MultiWall wallpaper
 
-echo "Aplicando wallpaper..."
+echo "Applying wallpaper..."
 gsettings set org.gnome.desktop.background picture-uri 'file://{image_path}'
 gsettings set org.gnome.desktop.background picture-uri-dark 'file://{image_path}'
 gsettings set org.gnome.desktop.background picture-options 'spanned'
-echo "✅ Wallpaper aplicado correctamente"
-echo "Imagen: {image_path}"
+echo "✅ Wallpaper applied successfully"
+echo "Image: {image_path}"
 """
     try:
         script_path.write_text(script_content)
         script_path.chmod(0o755)
+        logger.info(f"Manual script created: {script_path}")
         return str(script_path)
     except Exception as e:
-        logger.error(f"[DEBUG] Error creando script: {e}")
+        logger.error(f"Error creating manual script: {e}")
         return None
 
 
 def apply_wallpaper(image_path):
     """
-    Aplica el wallpaper usando el método apropiado según el entorno.
+    Apply wallpaper using the appropriate method based on environment.
     
+    Args:
+        image_path: Path to wallpaper image
+        
     Returns:
         tuple: (success: bool, message: str, script_path: str or None)
     """
-    logger.debug(f"\n{'='*60}")
-    logger.debug(f"Iniciando aplicación de wallpaper")
-    logger.debug(f"Ruta de imagen: {image_path}")
-    logger.debug(f"En Flatpak: {is_running_in_flatpak()}")
-    logger.debug(f"En Docker: {is_running_in_docker()}")
-    logger.debug(f"Archivo existe: {os.path.exists(image_path)}")
-    logger.debug(f"Tamaño archivo: {os.path.getsize(image_path) if os.path.exists(image_path) else 'N/A'} bytes")
-    logger.debug(f"{'='*60}\n")
+    logger.info("="*60)
+    logger.info("Starting wallpaper application process")
+    logger.info(f"Image path: {image_path}")
+    logger.info(f"In Flatpak: {is_running_in_flatpak()}")
+    logger.info(f"In Docker: {is_running_in_docker()}")
+    logger.info(f"File exists: {os.path.exists(image_path)}")
+    if os.path.exists(image_path):
+        logger.info(f"File size: {os.path.getsize(image_path)} bytes")
+    logger.info("="*60)
     
     if not os.path.exists(image_path):
-        return False, f"El archivo no existe: {image_path}", None
+        logger.error(f"Wallpaper file does not exist: {image_path}")
+        return False, f"File does not exist: {image_path}", None
     
-    # Si estamos en Flatpak
+    # If running in Flatpak
     if is_running_in_flatpak():
-        logger.debug("Modo Flatpak detectado")
+        logger.info("Flatpak mode detected")
         
-        # No necesitamos copiar, la imagen ya está en la ruta correcta de get_wallpaper_path()
+        # Image is already in the correct path from get_wallpaper_path()
         final_path = image_path
-        logger.debug(f"Ruta para GNOME: {final_path}")
+        logger.debug(f"Path for GNOME: {final_path}")
         
-        # Aplicamos gsettings directo (puede no funcionar en sandbox)
-        logger.debug(f"Intentando gsettings directo como fallback...")
+        # Try direct gsettings (may not work in sandbox)
+        logger.info("Trying direct gsettings as fallback...")
         success, message = apply_wallpaper_native(final_path)
         if success:
+            logger.info("Wallpaper applied successfully from Flatpak")
             return True, message, None
-        logger.debug(f"gsettings directo falló: {message}")
+        logger.warning(f"Direct gsettings failed: {message}")
         
-        # Si todo falla, dar instrucciones manuales
+        # If all fails, provide manual instructions
         script_path = create_manual_instructions(final_path)
         manual_msg = (
-            f"⚠️ No se pudo aplicar automáticamente desde el Flatpak.\n\n"
-            f"El wallpaper fue generado en:\n{final_path}\n\n"
-            f"Para aplicarlo manualmente:\n"
-            f"1. Abre una terminal FUERA del Flatpak\n"
-            f"2. Ejecuta: bash {script_path}\n\n"
-            f"O bien, abre Configuración de GNOME > Apariencia\n"
-            f"y selecciona la imagen manualmente."
+            f"⚠️ Could not apply automatically from Flatpak.\n\n"
+            f"Wallpaper was generated at:\n{final_path}\n\n"
+            f"To apply manually:\n"
+            f"1. Open a terminal OUTSIDE of Flatpak\n"
+            f"2. Run: bash {script_path}\n\n"
+            f"Or open GNOME Settings > Appearance\n"
+            f"and select the image manually."
         )
+        logger.info("Providing manual application instructions")
         return False, manual_msg, script_path
     
-    # Si estamos en Docker o nativo
+    # If running in Docker or native
     else:
-        logger.debug("Modo nativo/Docker detectado")
+        logger.info("Native/Docker mode detected")
         success, message = apply_wallpaper_native(image_path)
         if success:
+            logger.info("Wallpaper applied successfully")
             return True, message, None
         
-        # Crear script de respaldo
+        # Create fallback script
         script_path = create_manual_instructions(image_path)
         fallback_msg = (
-            f"⚠️ gsettings falló: {message}\n\n"
-            f"Para aplicar el wallpaper, ejecuta:\n"
+            f"⚠️ gsettings failed: {message}\n\n"
+            f"To apply the wallpaper, run:\n"
             f"bash {script_path}"
         )
+        logger.warning("gsettings failed, providing manual script")
         return False, fallback_msg, script_path

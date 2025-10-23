@@ -5,7 +5,7 @@ from pathlib import Path
 from .logger import get_logger, setup_logger
 import logging
 
-# Configurar logger con nivel DEBUG si se pasa --debug
+# Setup logger with DEBUG level if --debug flag is passed
 if '--debug' in sys.argv:
     setup_logger('multiwall', logging.DEBUG)
     sys.argv.remove('--debug')
@@ -14,11 +14,11 @@ else:
 
 logger = get_logger(__name__)
 
-# Asegurar UTF-8 para emojis
+# Ensure UTF-8 for emojis
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-# Configuración de i18n
+# i18n configuration
 translations_path = Path(__file__).parent / 'translations'
 i18n.load_path.clear()
 i18n.load_path.append(str(translations_path))
@@ -28,18 +28,19 @@ i18n.set('fallback', 'en')
 i18n.set('error_on_missing_translation', False)
 i18n.set('error_on_missing_placeholder', False)
 
-# Detectar idioma del sistema
+# Detect system language
 def detect_system_language():
+    """Detect system language from environment variables."""
     lang = os.getenv('LANGUAGE')
     if lang and lang != 'C':
         detected = lang.split(':')[0][:2]
-        logger.debug(f"Language detected from LANGUAGE: {detected}")
+        logger.debug(f"Language detected from LANGUAGE env: {detected}")
         return detected
     
     lang = os.getenv('LANG')
     if lang and lang != 'C':
         detected = lang.split('_')[0]
-        logger.debug(f"Language detected from LANG: {detected}")
+        logger.debug(f"Language detected from LANG env: {detected}")
         return detected
     
     try:
@@ -50,7 +51,7 @@ def detect_system_language():
             logger.debug(f"Language detected from locale: {detected}")
             return detected
     except Exception as e:
-        logger.error(f"Error detectando locale: {e}")
+        logger.error(f"Error detecting locale: {e}")
     
     logger.info("Using default language: en")
     return 'en'
@@ -58,10 +59,10 @@ def detect_system_language():
 detected_lang = detect_system_language()
 i18n.set('locale', detected_lang)
 
-logger.debug(f"Ruta de traducciones: {translations_path}")
-logger.debug(f"Ruta existe: {translations_path.exists()}")
+logger.debug(f"Translations path: {translations_path}")
+logger.debug(f"Translations path exists: {translations_path.exists()}")
 if translations_path.exists():
-    logger.debug(f"Archivos en translations: {list(translations_path.glob('*.json'))}")
+    logger.debug(f"Translation files: {list(translations_path.glob('*.json'))}")
 
 import subprocess
 from gi import require_version
@@ -74,11 +75,12 @@ from .utils import pil_to_pixbuf
 from .image_sidebar import ImageSidebar
 
 
-# Detectar si estamos en Docker
 def is_running_in_docker():
+    """Check if running inside Docker container."""
     return os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv')
 
-# Usar directorio compartido con el host
+
+# Use shared directory with host if in Docker
 if is_running_in_docker():
     TMP_OUTPUT = str(Path.home() / ".config" / "multiwall" / "current_wallpaper.jpg")
 else:
@@ -86,9 +88,9 @@ else:
 
 
 def get_default_pictures_directory():
-    """Obtiene el directorio de imágenes predeterminado del sistema."""
+    """Get default system pictures directory."""
     try:
-        # Intentar obtener desde XDG user dirs
+        # Try to get from XDG user dirs
         result = subprocess.run(
             ['xdg-user-dir', 'PICTURES'],
             capture_output=True,
@@ -97,43 +99,48 @@ def get_default_pictures_directory():
         )
         pictures_dir = result.stdout.strip()
         if pictures_dir and os.path.exists(pictures_dir):
-            logger.debug(f"Directorio de imágenes del sistema: {pictures_dir}")
+            logger.debug(f"System pictures directory: {pictures_dir}")
             return pictures_dir
     except Exception as e:
-        logger.error(f"No se pudo obtener xdg-user-dir: {e}")
+        logger.warning(f"Could not get xdg-user-dir: {e}")
     
-    # Fallback: intentar ubicaciones comunes según el idioma
+    # Fallback: try common locations based on language
     home = Path.home()
     common_names = ['Pictures', 'Imágenes', 'Images', 'Bilder', 'Imagenes']
     
     for name in common_names:
         candidate = home / name
         if candidate.exists():
-            logger.debug(f"Directorio de imágenes encontrado: {candidate}")
+            logger.debug(f"Pictures directory found: {candidate}")
             return str(candidate)
     
-    # Último fallback: HOME
-    logger.debug(f"Usando directorio HOME como fallback: {home}")
+    # Last fallback: HOME
+    logger.debug(f"Using HOME directory as fallback: {home}")
     return str(home)
 
 
 class MultiWallApp(Gtk.Application):
-    def __init__(self, app = None):
+    def __init__(self, app=None):
         if not Gdk.Display.get_default():
             raise RuntimeError(
-                "No se detectó un display. Asegúrate de:\n"
-                "1. Tener DISPLAY configurado (ej: export DISPLAY=:0)\n"
-                "2. Ejecutar en un entorno con GUI (no en contenedor sin X11)\n"
-                "3. Tener permisos de acceso al display"
+                "No display detected. Make sure to:\n"
+                "1. Have DISPLAY configured (e.g., export DISPLAY=:0)\n"
+                "2. Run in a GUI environment (not in a container without X11)\n"
+                "3. Have permissions to access the display"
             )
         
         super().__init__(application_id='com.multiwall.app')
+        logger.info("Initializing MultiWall application")
+        
         self.settings = load_config()
-        # Usar el último directorio guardado, o detectar el del sistema
+        # Use last saved directory, or detect system default
         self.last_directory = self.settings.get('last_directory', get_default_pictures_directory())
+        logger.debug(f"Initial pictures directory: {self.last_directory}")
+        
         self.connect('activate', self.on_activate)
 
     def on_activate(self, app):
+        logger.info("Activating application window")
         self.window = Gtk.ApplicationWindow(
             application=app,
             title=i18n.t('app.title'),
@@ -142,13 +149,16 @@ class MultiWallApp(Gtk.Application):
         )
         self.build_ui()
         self.window.present()
+        logger.info("Application window presented")
 
     def build_ui(self):
-        # Contenedor principal horizontal: contenido + sidebar
+        logger.debug("Building UI components")
+        
+        # Main horizontal container: content + sidebar
         main_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         self.window.set_child(main_container)
 
-        # === ÁREA PRINCIPAL ===
+        # === MAIN AREA ===
         main = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=10,
@@ -168,7 +178,7 @@ class MultiWallApp(Gtk.Application):
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
         main.append(content)
 
-        # === ÁREA DE PREVIEW ===
+        # === PREVIEW AREA ===
         preview_frame = Gtk.Frame()
         preview_frame.set_label(i18n.t('app.preview_label'))
         preview_frame.set_vexpand(True)
@@ -185,7 +195,7 @@ class MultiWallApp(Gtk.Application):
         self.preview.set_vexpand(True)
         preview_box.append(self.preview)
 
-        # === ÁREA DE CONTROLES ===
+        # === CONTROLS AREA ===
         controls_frame = Gtk.Frame()
         controls_frame.set_label(i18n.t('app.controls_label'))
         content.append(controls_frame)
@@ -193,6 +203,8 @@ class MultiWallApp(Gtk.Application):
         display = Gdk.Display.get_default()
         monitor_list = display.get_monitors()
         self.monitors = [monitor_list.get_item(i) for i in range(monitor_list.get_n_items())]
+        logger.info(f"Detected {len(self.monitors)} monitors")
+        
         saved = self.settings.get('monitors', {})
 
         scroll = Gtk.ScrolledWindow()
@@ -211,11 +223,12 @@ class MultiWallApp(Gtk.Application):
         self.rows = []
         for i, mon in enumerate(self.monitors):
             geom = mon.get_geometry()
+            logger.debug(f"Monitor {i}: {geom.width}x{geom.height} @ ({geom.x}, {geom.y})")
             row = MonitorRow(i, geom, saved.get(str(i), {}), self.on_monitor_changed, self)
             list_box.append(row)
             self.rows.append(row)
 
-        # === BOTONES DE ACCIÓN ===
+        # === ACTION BUTTONS ===
         btn_box = Gtk.Box(spacing=8, halign=Gtk.Align.CENTER)
         btn_box.set_margin_top(10)
         main.append(btn_box)
@@ -230,28 +243,26 @@ class MultiWallApp(Gtk.Application):
         apply_btn.add_css_class('suggested-action')
         btn_box.append(apply_btn)
 
-        # === SIDEBAR DE IMÁGENES (al final, a la derecha) ===
+        # === IMAGE SIDEBAR (at the end, on the right) ===
+        logger.debug("Creating image sidebar")
         self.sidebar = ImageSidebar(self.last_directory, self.on_image_selected)
         main_container.append(self.sidebar)
 
-        # Evitar que el sidebar compita por espacio: que no expanda horizontalmente
+        # Prevent sidebar from competing for space
         self.sidebar.set_hexpand(False)
         self.sidebar.set_vexpand(True)
         main.set_hexpand(True)
 
-        # Ajustar ancho del sidebar entre 20% y 30% mediante polling ligero.
-        # GTK4 no tiene la señal 'size-allocate' en ApplicationWindow, por eso
-        # usamos un pequeño timer que solo actualiza cuando cambia el ancho.
+        # Adjust sidebar width between 20% and 30% via light polling
         self._last_window_width = 0
 
         def _poll_window_size():
             try:
-                # GTK4: usar get_allocated_width en lugar de get_size
                 total_w = self.window.get_allocated_width()
                 if total_w != self._last_window_width and total_w > 0:
                     self._last_window_width = total_w
                     min_px = 180
-                    target = int(total_w * 0.25)  # objetivo ~25%
+                    target = int(total_w * 0.25)  # ~25%
                     target = max(min_px, target)
                     max_allowed = int(total_w * 0.30)
                     if target > max_allowed:
@@ -261,122 +272,128 @@ class MultiWallApp(Gtk.Application):
                     except Exception:
                         pass
             except Exception as e:
-                logger.error("Error en poll_window_size:", e)
+                logger.error(f"Error in window size polling: {e}")
             return True
 
         GLib.timeout_add(150, _poll_window_size)
 
+        logger.debug("UI build complete, updating initial preview")
         self.update_preview()
 
     def on_image_selected(self, image_path, button):
-        """Callback cuando se selecciona una imagen del sidebar."""
-        logger.debug(f"Imagen seleccionada: {image_path}")
+        """Callback when an image is selected from sidebar."""
+        logger.debug(f"Image selected from sidebar: {image_path}")
         
-        # Crear menú popover
+        # Create popover menu
         menu = Gio.Menu()
         
-        # Agregar opción para cada monitor
+        # Add option for each monitor
         for i in range(len(self.monitors)):
             menu.append(i18n.t('monitor.title', number=i+1), f"app.set-monitor-{i}")
         
-        # Crear popover con el menú
+        # Create popover with menu
         popover = Gtk.PopoverMenu()
         popover.set_menu_model(menu)
         popover.set_parent(button)
         popover.set_has_arrow(True)
         
-        # Limpiar acciones previas si existen
+        # Clean previous actions if they exist
         for i in range(len(self.monitors)):
             action_name = f"set-monitor-{i}"
             if self.lookup_action(action_name):
                 self.remove_action(action_name)
         
-        # Crear acciones para cada monitor
+        # Create actions for each monitor
         for i in range(len(self.monitors)):
             action = Gio.SimpleAction.new(f"set-monitor-{i}", None)
             action.connect("activate", lambda a, p, idx=i, path=image_path, pv=popover: self.assign_image_to_monitor(idx, path, pv))
             self.add_action(action)
         
-        # Mostrar el popover
+        # Show popover
         popover.popup()
 
     def assign_image_to_monitor(self, monitor_idx, image_path, popover):
-        """Asigna una imagen a un monitor específico."""
-        logger.debug(f"Asignando imagen {image_path} al monitor {monitor_idx}")
+        """Assign an image to a specific monitor."""
+        logger.info(f"Assigning image to monitor {monitor_idx}: {os.path.basename(image_path)}")
         self.rows[monitor_idx].set_image_file(image_path)
         self.on_monitor_changed()
-        # Cerrar el popover después de seleccionar
+        # Close popover after selection
         popover.popdown()
 
     def gather_states(self):
-        return {str(r.index): r.get_state() for r in self.rows}
+        """Gather current state of all monitors."""
+        states = {str(r.index): r.get_state() for r in self.rows}
+        logger.debug(f"Gathered states for {len(states)} monitors")
+        return states
 
     def update_preview(self, *_):
+        """Update the wallpaper preview."""
         try:
-            logger.debug("=== Actualizando preview ===")
+            logger.debug("=== Updating preview ===")
             states = self.gather_states()
-            logger.debug(f"Estados: {states}")
-            logger.debug(f"Monitores: {len(self.monitors)}")
             
             preview = compose_image(self.monitors, states, scale_preview=1000)
-            logger.debug(f"Preview generado: {preview.size}")
+            logger.debug(f"Preview generated: {preview.size}")
             
             self.preview.clear()
             
             pix = pil_to_pixbuf(preview.convert('RGB'))
-            logger.debug(f"Pixbuf creado: {pix.get_width()}x{pix.get_height()}")
+            logger.debug(f"Pixbuf created: {pix.get_width()}x{pix.get_height()}")
             
             self.preview.set_from_pixbuf(pix)
-            logger.debug("Preview actualizado correctamente")
+            logger.debug("Preview updated successfully")
         except Exception as e:
-            logger.error('Error en preview:', e)
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error updating preview: {e}", exc_info=True)
 
     def on_monitor_changed(self, *_):
+        """Callback when monitor configuration changes."""
         self.update_preview()
-        # Guardar configuración automáticamente cuando cambia algo
+        # Auto-save configuration on change
         save_config({
             'monitors': self.gather_states(),
             'last_directory': self.last_directory
         })
 
     def on_apply(self, *_):
+        """Apply the wallpaper configuration."""
         try:
-            # Importar el módulo de wallpaper
+            logger.info("=== Applying wallpaper ===")
+            
+            # Import wallpaper module
             from .wallpaper_setter import apply_wallpaper, get_wallpaper_path
             
-            # Guardar configuración automáticamente antes de aplicar
+            # Auto-save configuration before applying
             save_config({
                 'monitors': self.gather_states(),
                 'last_directory': self.last_directory
             })
             
-            # Generar imagen combinada
+            # Generate combined image
             combined = compose_image(self.monitors, self.gather_states())
+            logger.debug(f"Combined image generated: {combined.size}")
             
-            # Obtener la ruta apropiada según el entorno
+            # Get appropriate path based on environment
             output_path = get_wallpaper_path()
             
-            # Asegurar que el directorio existe
+            # Ensure directory exists
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             
-            # Guardar imagen
+            # Save image
             combined.convert('RGB').save(output_path, quality=95)
-            logger.debug(f"Wallpaper guardado en: {output_path}")
+            logger.info(f"Wallpaper saved to: {output_path}")
             
-            # Aplicar wallpaper usando el método apropiado
+            # Apply wallpaper using appropriate method
             success, message, script_path = apply_wallpaper(output_path)
             
             if success:
-                logger.debug(f"✅ {message}")
+                logger.info(f"Wallpaper applied successfully")
                 dialog = Gtk.AlertDialog(message=i18n.t('app.dialogs.applied'))
                 dialog.show(self.window)
             else:
-                logger.debug(f"⚠️ {message}")
+                logger.warning(f"Wallpaper could not be applied automatically: {message}")
                 if script_path:
                     full_message = (
-                        f"✅ Wallpaper generado en:\n{output_path}\n\n"
+                        f"✅ Wallpaper generated at:\n{output_path}\n\n"
                         f"⚠️ {message}"
                     )
                 else:
@@ -387,9 +404,7 @@ class MultiWallApp(Gtk.Application):
                 
         except Exception as e:
             error_msg = str(e)
-            logger.error(f"❌ Error al aplicar wallpaper: {error_msg}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error applying wallpaper: {error_msg}", exc_info=True)
             
             dialog = Gtk.AlertDialog(
                 message=i18n.t('app.dialogs.error', error=error_msg)
@@ -397,4 +412,5 @@ class MultiWallApp(Gtk.Application):
             dialog.show(self.window)
 
     def run(self, argv=None):
+        logger.info("Starting application main loop")
         return super().run(argv)

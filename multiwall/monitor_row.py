@@ -12,7 +12,10 @@ logger = get_logger(__name__)
 IMAGE_FILTERS = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp", "*.avif"]
 DEFAULT_OPTIONS = {'background': '#000000'}
 
+
 class MonitorRow(Gtk.Box):
+    """Widget for configuring a single monitor's wallpaper."""
+    
     def __init__(self, index, geom, initial, on_change_cb, app):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.add_css_class('card')
@@ -23,10 +26,14 @@ class MonitorRow(Gtk.Box):
 
         self.index = index
         self.on_change_cb = on_change_cb
-        self.app = app  # Referencia a la aplicación principal
+        self.app = app  # Reference to main application
         self.selected_file = initial.get('file')
+        
+        logger.debug(f"Creating MonitorRow {index}: {geom.width}x{geom.height}")
+        if self.selected_file:
+            logger.debug(f"Monitor {index} initial image: {self.selected_file}")
 
-        # Header con info del monitor
+        # Header with monitor info
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.append(header)
 
@@ -40,11 +47,11 @@ class MonitorRow(Gtk.Box):
         info_label.add_css_class('dim-label')
         header.append(info_label)
 
-        # Controles en fila horizontal
+        # Controls in horizontal row
         controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.append(controls)
 
-        # === Botón de archivo ===
+        # === File button ===
         file_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         file_box.set_hexpand(True)
         controls.append(file_box)
@@ -62,7 +69,7 @@ class MonitorRow(Gtk.Box):
         self.file_button.connect('clicked', self.on_choose_file)
         file_box.append(self.file_button)
 
-        # === Modo ===
+        # === Mode ===
         mode_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         controls.append(mode_box)
 
@@ -87,7 +94,7 @@ class MonitorRow(Gtk.Box):
         self.combo = combo
         mode_box.append(combo)
 
-        # === Color de fondo ===
+        # === Background color ===
         color_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         controls.append(color_box)
 
@@ -105,29 +112,34 @@ class MonitorRow(Gtk.Box):
         color_box.append(color)
 
     def on_mode_changed(self, combo, pspec):
-        """Callback cuando cambia el modo del wallpaper."""
+        """Callback when wallpaper display mode changes."""
         mode = self.mode_map[combo.get_selected()]
-        logger.debug(f"Monitor {self.index}: Modo cambiado a '{mode}'")
+        logger.info(f"Monitor {self.index}: Display mode changed to '{mode}'")
         self.on_change_cb(self.index)
 
     def on_color_changed(self, color_button):
-        """Callback cuando cambia el color de fondo."""
+        """Callback when background color changes."""
         rgba = color_button.get_rgba()
-        logger.debug(f"Monitor {self.index}: Color cambiado")
+        color_hex = f'#{int(rgba.red*255):02x}{int(rgba.green*255):02x}{int(rgba.blue*255):02x}'
+        logger.info(f"Monitor {self.index}: Background color changed to {color_hex}")
         self.on_change_cb(self.index)
 
     def on_choose_file(self, button):
+        """Open file chooser dialog for selecting an image."""
+        logger.debug(f"Monitor {self.index}: Opening file chooser")
+        
         dialog = Gtk.FileDialog()
         dialog.set_title(i18n.t('monitor.title', number=self.index+1))
         
-        # Establecer el directorio inicial al último usado
+        # Set initial directory to last used
         if os.path.exists(self.app.last_directory):
             initial_folder = Gio.File.new_for_path(self.app.last_directory)
             dialog.set_initial_folder(initial_folder)
+            logger.debug(f"Initial folder: {self.app.last_directory}")
         
-        # Crear filtro para imágenes
+        # Create filter for images
         filter_img = Gtk.FileFilter()
-        filter_img.set_name("Imágenes")
+        filter_img.set_name("Images")
         for pattern in IMAGE_FILTERS:
             filter_img.add_pattern(pattern)
         
@@ -136,40 +148,59 @@ class MonitorRow(Gtk.Box):
         dialog.set_filters(filters)
         dialog.set_default_filter(filter_img)
         
-        # Abrir diálogo
+        # Open dialog
         dialog.open(self.get_root(), None, self.on_file_selected)
 
     def on_file_selected(self, dialog, result):
+        """Callback when file is selected from dialog."""
         try:
             file = dialog.open_finish(result)
             if file:
                 self.selected_file = file.get_path()
                 
-                # Actualizar el último directorio usado
+                # Update last used directory
                 self.app.last_directory = str(Path(self.selected_file).parent)
-                logger.debug(f"Último directorio actualizado: {self.app.last_directory}")
+                logger.info(f"Monitor {self.index}: Image selected - {os.path.basename(self.selected_file)}")
+                logger.debug(f"Last directory updated: {self.app.last_directory}")
                 
                 self.file_button.set_label(os.path.basename(self.selected_file))
-                logger.debug(f"Monitor {self.index}: Imagen seleccionada - {self.selected_file}")
                 self.on_change_cb(self.index)
         except Exception as e:
-            # Usuario canceló o hubo error
-            pass
+            # User cancelled or error occurred
+            logger.debug(f"Monitor {self.index}: File selection cancelled or failed")
 
     def set_image_file(self, file_path):
-        """Establece la imagen para este monitor (usado desde el sidebar)."""
+        """
+        Set image for this monitor (used from sidebar).
+        
+        Args:
+            file_path: Path to image file
+        """
         if os.path.exists(file_path):
             self.selected_file = file_path
             self.file_button.set_label(os.path.basename(file_path))
-            logger.debug(f"Monitor {self.index}: Imagen establecida desde sidebar - {file_path}")
+            logger.info(f"Monitor {self.index}: Image set from sidebar - {os.path.basename(file_path)}")
             
-            # Actualizar el último directorio usado
+            # Update last used directory
             self.app.last_directory = str(Path(file_path).parent)
+            logger.debug(f"Last directory updated: {self.app.last_directory}")
+        else:
+            logger.warning(f"Monitor {self.index}: Attempted to set non-existent file: {file_path}")
 
     def get_state(self):
+        """
+        Get current state of monitor configuration.
+        
+        Returns:
+            dict: Configuration state with file, mode, and background
+        """
         mode = self.mode_map[self.combo.get_selected()]
         rgba = self.color.get_rgba()
         color_hex = f'#{int(rgba.red*255):02x}{int(rgba.green*255):02x}{int(rgba.blue*255):02x}'
-        state = {'file': self.selected_file, 'mode': mode, 'background': color_hex}
-        logger.debug(f"Monitor {self.index} get_state: {state}")
+        state = {
+            'file': self.selected_file,
+            'mode': mode,
+            'background': color_hex
+        }
+        logger.debug(f"Monitor {self.index} state: file={os.path.basename(self.selected_file) if self.selected_file else 'None'}, mode={mode}, bg={color_hex}")
         return state

@@ -1,56 +1,68 @@
 """
-Sistema de logging para MultiWall.
-Proporciona logging a archivo y consola con niveles configurables.
+Logging system for MultiWall.
+Provides file and console logging with configurable levels.
 """
 import logging
 import sys
 from pathlib import Path
 from datetime import datetime
 
-# Mantener registro de loggers ya configurados
+# Keep track of configured loggers
 _configured_loggers = set()
 
 def setup_logger(name, level=logging.INFO):
-    """Configura un logger con nombre y nivel específicos."""
+    """
+    Configure a logger with specific name and level.
+    
+    Args:
+        name: Logger name (usually __name__)
+        level: Logging level (DEBUG, INFO, WARNING, ERROR)
+    
+    Returns:
+        logging.Logger: Configured logger instance
+    """
     logger = logging.getLogger(name)
     
-    # Si el logger ya fue configurado, solo actualizar nivel
+    # If logger already configured, just update level
     if name in _configured_loggers:
         logger.setLevel(level)
         return logger
     
-    # Marcar logger como configurado
+    # Mark logger as configured
     _configured_loggers.add(name)
     
-    # Configurar logger solo si no tiene handlers
+    # Configure logger only if it has no handlers
     if not logger.handlers:
         logger.setLevel(level)
         
-        # Crear handler para stdout
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(level)
+        # Console handler (stdout)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(level)
         
-        # Crear formatter
-        formatter = logging.Formatter(
+        # Formatter with colors for console (if supported)
+        console_formatter = ColoredFormatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-        handler.setFormatter(formatter)
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
         
-        # Agregar handler al logger
-        logger.addHandler(handler)
-        
-        # Handler para archivo (opcional, solo si se puede escribir)
+        # File handler (optional, only if writable)
         try:
             log_dir = Path.home() / ".config" / "multiwall" / "logs"
             log_dir.mkdir(parents=True, exist_ok=True)
             
-            # Nombre de archivo con fecha
+            # Log file with date
             log_file = log_dir / f"multiwall_{datetime.now().strftime('%Y%m%d')}.log"
             
             file_handler = logging.FileHandler(log_file, encoding='utf-8')
-            file_handler.setLevel(logging.DEBUG)  # Archivo siempre en DEBUG
-            file_handler.setFormatter(formatter)
+            file_handler.setLevel(logging.DEBUG)  # File always in DEBUG
+            
+            file_formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+            file_handler.setFormatter(file_formatter)
             logger.addHandler(file_handler)
             
             logger.info(f"Logging to file: {log_file}")
@@ -60,10 +72,42 @@ def setup_logger(name, level=logging.INFO):
     
     return logger
 
+
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter with colors for console output."""
+    
+    # ANSI color codes
+    COLORS = {
+        'DEBUG': '\033[36m',    # Cyan
+        'INFO': '\033[32m',     # Green
+        'WARNING': '\033[33m',  # Yellow
+        'ERROR': '\033[31m',    # Red
+        'CRITICAL': '\033[35m', # Magenta
+        'RESET': '\033[0m'      # Reset
+    }
+    
+    def format(self, record):
+        # Add color to level name if terminal supports it
+        if sys.stdout.isatty():
+            levelname = record.levelname
+            if levelname in self.COLORS:
+                record.levelname = f"{self.COLORS[levelname]}{levelname}{self.COLORS['RESET']}"
+        
+        return super().format(record)
+
+
 def get_logger(name):
-    """Obtiene un logger ya configurado o crea uno nuevo."""
+    """
+    Get an already configured logger or create a new one.
+    
+    Args:
+        name: Logger name (usually __name__)
+    
+    Returns:
+        logging.Logger: Logger instance
+    """
     return logging.getLogger(name)
 
 
-# Logger por defecto para importación rápida
+# Default logger for quick import
 logger = get_logger(__name__)

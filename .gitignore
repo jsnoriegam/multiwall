@@ -10,4 +10,5 @@ dist
 flatpak/icons
 flatpak/*.png
 appimage/*.png
+log.txt
 **/*.test

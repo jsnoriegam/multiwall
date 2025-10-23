@@ -15,7 +15,7 @@ THUMBNAIL_SIZE = 100
 
 
 class ImageSidebar(Gtk.Box):
-    """Sidebar que muestra miniaturas de imágenes en un grid."""
+    """Sidebar displaying image thumbnails in a grid."""
     
     def __init__(self, pictures_dir, on_image_selected_cb):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -24,11 +24,13 @@ class ImageSidebar(Gtk.Box):
         self.on_image_selected_cb = on_image_selected_cb
         self.current_images = []
         
-        # Estilo del sidebar - más compacto
+        logger.info(f"Initializing ImageSidebar with directory: {pictures_dir}")
+        
+        # Sidebar styling - compact
         self.set_size_request(220, -1)
         self.add_css_class('sidebar')
         
-        # Header del sidebar - más compacto
+        # Header - compact
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         header.set_margin_top(8)
         header.set_margin_bottom(8)
@@ -42,7 +44,7 @@ class ImageSidebar(Gtk.Box):
         title.set_xalign(0)
         header.append(title)
         
-        # Botón para cambiar carpeta - más pequeño
+        # Change folder button
         change_btn = Gtk.Button()
         change_btn.set_icon_name('folder-open-symbolic')
         change_btn.set_tooltip_text(i18n.t('sidebar.change_folder'))
@@ -50,7 +52,7 @@ class ImageSidebar(Gtk.Box):
         change_btn.add_css_class('flat')
         header.append(change_btn)
         
-        # Botón de refrescar - más pequeño
+        # Refresh button
         refresh_btn = Gtk.Button()
         refresh_btn.set_icon_name('view-refresh-symbolic')
         refresh_btn.set_tooltip_text(i18n.t('sidebar.refresh'))
@@ -58,11 +60,11 @@ class ImageSidebar(Gtk.Box):
         refresh_btn.add_css_class('flat')
         header.append(refresh_btn)
         
-        # Separador
+        # Separator
         separator = Gtk.Separator()
         self.append(separator)
         
-        # Etiqueta de la carpeta actual - más compacta
+        # Current folder label - compact
         self.folder_label = Gtk.Label()
         self.folder_label.set_ellipsize(3)  # ELLIPSIZE_END
         self.folder_label.set_xalign(0)
@@ -74,13 +76,13 @@ class ImageSidebar(Gtk.Box):
         self.folder_label.add_css_class('caption')
         self.append(self.folder_label)
         
-        # ScrolledWindow para el grid
+        # ScrolledWindow for grid
         scroll = Gtk.ScrolledWindow()
         scroll.set_vexpand(True)
         scroll.set_hexpand(True)
         self.append(scroll)
         
-        # FlowBox para el grid de miniaturas - más compacto
+        # FlowBox for thumbnail grid - compact
         self.flowbox = Gtk.FlowBox()
         self.flowbox.set_valign(Gtk.Align.START)
         self.flowbox.set_max_children_per_line(2)
@@ -95,18 +97,21 @@ class ImageSidebar(Gtk.Box):
         self.flowbox.set_margin_bottom(8)
         scroll.set_child(self.flowbox)
         
-        # Cargar imágenes iniciales
+        # Load initial images
         self.load_images()
     
     def update_folder_label(self):
-        """Actualiza la etiqueta con la carpeta actual."""
+        """Update label with current folder name."""
         folder_name = Path(self.pictures_dir).name
         self.folder_label.set_text(f"📁 {folder_name}")
         self.folder_label.set_tooltip_text(self.pictures_dir)
+        logger.debug(f"Folder label updated: {folder_name}")
     
     def load_images(self):
-        """Carga las imágenes del directorio actual."""
-        # Limpiar flowbox
+        """Load images from current directory."""
+        logger.info(f"Loading images from: {self.pictures_dir}")
+        
+        # Clear flowbox
         while True:
             child = self.flowbox.get_first_child()
             if child is None:
@@ -115,42 +120,51 @@ class ImageSidebar(Gtk.Box):
         
         self.current_images = []
         
-        # Actualizar etiqueta de carpeta
+        # Update folder label
         self.update_folder_label()
         
-        # Verificar que el directorio existe
+        # Verify directory exists
         if not os.path.exists(self.pictures_dir):
-            logger.warning(f"El directorio {self.pictures_dir} no existe")
+            logger.warning(f"Directory does not exist: {self.pictures_dir}")
             return
         
-        # Buscar archivos de imagen
+        # Search for image files
         try:
             for entry in sorted(Path(self.pictures_dir).iterdir()):
                 if entry.is_file() and entry.suffix.lower() in IMAGE_EXTENSIONS:
                     self.current_images.append(str(entry))
+        except PermissionError as e:
+            logger.error(f"Permission denied listing images: {e}")
+            return
         except Exception as e:
-            logger.error(f"Error listando imágenes: {e}")
+            logger.error(f"Error listing images: {e}")
             return
         
-        logger.info(f"Encontradas {len(self.current_images)} imágenes en {self.pictures_dir}")
+        logger.info(f"Found {len(self.current_images)} images in {self.pictures_dir}")
         
-        # Crear miniaturas
+        # Create thumbnails
         for image_path in self.current_images:
             self.create_thumbnail(image_path)
     
     def create_thumbnail(self, image_path):
-        """Crea una miniatura para una imagen."""
-        # Crear contenedor para la miniatura
+        """
+        Create a thumbnail for an image.
+        
+        Args:
+            image_path: Path to image file
+        """
+        logger.debug(f"Creating thumbnail for: {os.path.basename(image_path)}")
+        
+        # Create container for thumbnail
         button = Gtk.Button()
         button.add_css_class('flat')
         button.set_tooltip_text(os.path.basename(image_path))
         
-        # Box para la imagen y nombre - más compacto
+        # Box for image and name - compact
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         
-        # Cargar y escalar la imagen
-        # Para AVIF y otros formatos que GdkPixbuf puede no soportar,
-        # intentar primero con GdkPixbuf, y si falla, usar Pillow
+        # Load and scale image
+        # Try GdkPixbuf first, fallback to Pillow for unsupported formats
         pixbuf = None
         try:
             pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
@@ -159,44 +173,43 @@ class ImageSidebar(Gtk.Box):
                 THUMBNAIL_SIZE,
                 True  # preserve_aspect_ratio
             )
+            logger.debug(f"Thumbnail loaded with GdkPixbuf: {os.path.basename(image_path)}")
         except Exception as e:
-            logger.error(f"GdkPixbuf no pudo cargar {image_path}, intentando con Pillow...")
-            # Fallback a Pillow para formatos no soportados por GdkPixbuf
+            logger.debug(f"GdkPixbuf failed for {os.path.basename(image_path)}, trying Pillow...")
+            # Fallback to Pillow for formats not supported by GdkPixbuf (e.g., AVIF)
             try:
-                # Cargar con Pillow
+                # Load with Pillow
                 pil_img = Image.open(image_path)
                 pil_img.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE), Image.Resampling.LANCZOS)
                 
-                # Convertir a RGB si es necesario
+                # Convert to RGB if necessary
                 if pil_img.mode != 'RGB':
                     pil_img = pil_img.convert('RGB')
                 
-                # Convertir PIL a bytes PNG
+                # Convert PIL to PNG bytes
                 img_bytes = io.BytesIO()
                 pil_img.save(img_bytes, format='PNG')
                 img_data = img_bytes.getvalue()
                 
-                # Crear GdkPixbuf desde bytes usando GLib.Bytes
+                # Create GdkPixbuf from bytes using GLib.Bytes
                 bytes_obj = GLib.Bytes.new(img_data)
                 stream = Gio.MemoryInputStream.new_from_bytes(bytes_obj)
                 pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, None)
                 
-                logger.info(f"✅ Imagen AVIF cargada con Pillow: {os.path.basename(image_path)}")
+                logger.info(f"Thumbnail loaded with Pillow: {os.path.basename(image_path)}")
             except Exception as e2:
-                logger.error(f"❌ Error cargando imagen con Pillow {image_path}: {e2}")
-                import traceback
-                traceback.print_exc()
+                logger.error(f"Failed to load thumbnail for {os.path.basename(image_path)}: {e2}")
                 return
         
         if pixbuf is None:
-            logger.warning(f"⚠️ No se pudo cargar la imagen: {image_path}")
+            logger.warning(f"Could not load thumbnail: {os.path.basename(image_path)}")
             return
         
         image = Gtk.Image.new_from_pixbuf(pixbuf)
         image.set_size_request(THUMBNAIL_SIZE, THUMBNAIL_SIZE)
         box.append(image)
         
-        # Nombre del archivo (truncado) - texto más pequeño
+        # Filename (truncated) - smaller text
         label = Gtk.Label()
         filename = os.path.basename(image_path)
         if len(filename) > 15:
@@ -208,28 +221,30 @@ class ImageSidebar(Gtk.Box):
         
         button.set_child(box)
         
-        # Conectar click - pasar el botón como parámetro adicional
+        # Connect click - pass button as additional parameter
         button.connect('clicked', self.on_thumbnail_clicked, image_path)
         
-        # Agregar al flowbox
+        # Add to flowbox
         self.flowbox.append(button)
     
     def on_thumbnail_clicked(self, button, image_path):
-        """Callback cuando se hace clic en una miniatura."""
-        logger.debug(f"Clic en miniatura: {image_path}")
-        # Pasar tanto la ruta de la imagen como el botón
+        """Callback when thumbnail is clicked."""
+        logger.info(f"Thumbnail clicked: {os.path.basename(image_path)}")
+        # Pass both image path and button
         self.on_image_selected_cb(image_path, button)
     
     def on_change_folder(self, button):
-        """Muestra un diálogo personalizado para cambiar la carpeta de imágenes."""
-        # Crear ventana de diálogo
+        """Show custom dialog for changing image folder."""
+        logger.info("Opening folder selection dialog")
+        
+        # Create dialog window
         dialog = Gtk.Window()
         dialog.set_title(i18n.t('sidebar.select_folder'))
         dialog.set_modal(True)
         dialog.set_transient_for(self.get_root())
         dialog.set_default_size(500, 400)
         
-        # Box principal
+        # Main box
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         main_box.set_margin_top(10)
         main_box.set_margin_bottom(10)
@@ -237,40 +252,41 @@ class ImageSidebar(Gtk.Box):
         main_box.set_margin_end(10)
         dialog.set_child(main_box)
         
-        # Label de instrucciones
+        # Instruction label
         label = Gtk.Label(label=i18n.t('sidebar.select_folder_instruction'))
         label.set_xalign(0)
         main_box.append(label)
         
-        # Área con scroll para el árbol de carpetas
+        # Scrolled area for folder tree
         scroll = Gtk.ScrolledWindow()
         scroll.set_vexpand(True)
         scroll.set_hexpand(True)
         main_box.append(scroll)
         
-        # TreeView con modelo
-        store = Gtk.TreeStore(str, str)  # (nombre visible, ruta completa)
+        # TreeView with model
+        store = Gtk.TreeStore(str, str)  # (display name, full path)
         tree = Gtk.TreeView(model=store)
         tree.set_headers_visible(False)
         scroll.set_child(tree)
         
-        # Columna de texto
+        # Text column
         renderer = Gtk.CellRendererText()
-        column = Gtk.TreeViewColumn("Carpeta", renderer, text=0)
+        column = Gtk.TreeViewColumn("Folder", renderer, text=0)
         tree.append_column(column)
         
-        # Variable para guardar la carpeta seleccionada
-        selected_folder = [self.pictures_dir]  # Lista mutable para closure
+        # Variable to store selected folder
+        selected_folder = [self.pictures_dir]  # Mutable list for closure
         
         def on_tree_selection_changed(selection):
             model, treeiter = selection.get_selected()
             if treeiter:
                 selected_folder[0] = model[treeiter][1]
+                logger.debug(f"Folder selected in tree: {selected_folder[0]}")
         
         selection = tree.get_selection()
         selection.connect("changed", on_tree_selection_changed)
         
-        # Poblar árbol con carpetas comunes y sus subdirectorios
+        # Populate tree with common folders and subdirectories
         def add_folder_to_tree(parent_iter, folder_path, max_depth=2, current_depth=0):
             try:
                 if current_depth >= max_depth:
@@ -279,22 +295,22 @@ class ImageSidebar(Gtk.Box):
                 for entry in sorted(Path(folder_path).iterdir()):
                     if entry.is_dir() and not entry.name.startswith('.'):
                         folder_iter = store.append(parent_iter, [f"📁 {entry.name}", str(entry)])
-                        # Agregar subdirectorios recursivamente
+                        # Add subdirectories recursively
                         if current_depth < max_depth - 1:
                             add_folder_to_tree(folder_iter, entry, max_depth, current_depth + 1)
             except PermissionError:
-                pass
+                logger.debug(f"Permission denied accessing: {folder_path}")
             except Exception as e:
-                logger.error(f"Error listando {folder_path}: {e}")
+                logger.debug(f"Error listing folder {folder_path}: {e}")
         
-        # Agregar carpetas principales
+        # Add main folders
         home = Path.home()
         
         # Home
         home_iter = store.append(None, [f"🏠 {home.name}", str(home)])
         add_folder_to_tree(home_iter, home, max_depth=3)
         
-        # Carpetas comunes
+        # Common folders
         common_folders = ['Documents', 'Downloads', 'Pictures', 'Music', 'Videos', 
                          'Documentos', 'Descargas', 'Imágenes', 'Música', 'Vídeos']
         
@@ -304,10 +320,10 @@ class ImageSidebar(Gtk.Box):
                 folder_iter = store.append(None, [f"📁 {folder_name}", str(folder_path)])
                 add_folder_to_tree(folder_iter, folder_path, max_depth=2)
         
-        # Expandir home por defecto
+        # Expand home by default
         tree.expand_row(Gtk.TreePath.new_first(), False)
         
-        # Seleccionar carpeta actual si está en el árbol
+        # Select current folder if in tree
         def select_current_folder():
             def search_and_select(model, path, iter, search_path):
                 if model[iter][1] == search_path:
@@ -320,7 +336,7 @@ class ImageSidebar(Gtk.Box):
         
         GLib.idle_add(select_current_folder)
         
-        # Botones
+        # Buttons
         button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         button_box.set_halign(Gtk.Align.END)
         main_box.append(button_box)
@@ -334,12 +350,15 @@ class ImageSidebar(Gtk.Box):
         select_btn.connect('clicked', lambda w: self.on_folder_dialog_select(dialog, selected_folder[0]))
         button_box.append(select_btn)
         
+        logger.debug("Folder selection dialog presented")
         dialog.present()
     
     def on_folder_dialog_select(self, dialog, folder_path):
-        """Callback cuando se confirma la selección de carpeta."""
+        """Callback when folder selection is confirmed."""
         if folder_path and os.path.exists(folder_path):
+            logger.info(f"New folder selected: {folder_path}")
             self.pictures_dir = folder_path
-            logger.debug(f"Nueva carpeta seleccionada: {self.pictures_dir}")
             self.load_images()
+        else:
+            logger.warning(f"Invalid folder selected: {folder_path}")
         dialog.close()
