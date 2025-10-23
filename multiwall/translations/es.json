@@ -36,7 +36,9 @@
       "title": "📁 Galería de Imágenes",
       "change_folder": "Cambiar carpeta",
       "refresh": "Actualizar imágenes",
-      "select_folder": "Seleccionar carpeta de imágenes"
+      "select_folder": "Seleccionar carpeta de imágenes",
+      "select_folder_instruction": "Selecciona una carpeta:",
+      "select": "Seleccionar"
     }
   }
 }

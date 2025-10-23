@@ -1,6 +1,8 @@
 import os
 import i18n
 from pathlib import Path
+from PIL import Image
+import io
 from gi import require_version
 require_version('Gtk', '4.0')
 from gi.repository import Gtk, GdkPixbuf, GLib, Gio
@@ -122,7 +124,6 @@ class ImageSidebar(Gtk.Box):
         try:
             for entry in sorted(Path(self.pictures_dir).iterdir()):
                 if entry.is_file() and entry.suffix.lower() in IMAGE_EXTENSIONS:
-                    print(f"Agregando imagen: {entry}")
                     self.current_images.append(str(entry))
         except Exception as e:
             print(f"Error listando imágenes: {e}")
@@ -136,51 +137,79 @@ class ImageSidebar(Gtk.Box):
     
     def create_thumbnail(self, image_path):
         """Crea una miniatura para una imagen."""
+        # Crear contenedor para la miniatura
+        button = Gtk.Button()
+        button.add_css_class('flat')
+        button.set_tooltip_text(os.path.basename(image_path))
+        
+        # Box para la imagen y nombre - más compacto
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        
+        # Cargar y escalar la imagen
+        # Para AVIF y otros formatos que GdkPixbuf puede no soportar,
+        # intentar primero con GdkPixbuf, y si falla, usar Pillow
+        pixbuf = None
         try:
-            # Crear contenedor para la miniatura
-            button = Gtk.Button()
-            button.add_css_class('flat')
-            button.set_tooltip_text(os.path.basename(image_path))
-            
-            # Box para la imagen y nombre - más compacto
-            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            
-            # Cargar y escalar la imagen
-            try:
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                    image_path,
-                    THUMBNAIL_SIZE,
-                    THUMBNAIL_SIZE,
-                    True  # preserve_aspect_ratio
-                )
-            except Exception as e:
-                print(f"Error al cargar la imagen {image_path}: {e}")
-                return
-            
-            image = Gtk.Image.new_from_pixbuf(pixbuf)
-            image.set_size_request(THUMBNAIL_SIZE, THUMBNAIL_SIZE)
-            box.append(image)
-            
-            # Nombre del archivo (truncado) - texto más pequeño
-            label = Gtk.Label()
-            filename = os.path.basename(image_path)
-            if len(filename) > 15:
-                filename = filename[:12] + "..."
-            label.set_text(filename)
-            label.add_css_class('caption')
-            label.set_ellipsize(3)  # ELLIPSIZE_END
-            box.append(label)
-            
-            button.set_child(box)
-            
-            # Conectar click - pasar el botón como parámetro adicional
-            button.connect('clicked', self.on_thumbnail_clicked, image_path)
-            
-            # Agregar al flowbox
-            self.flowbox.append(button)
-            
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                image_path,
+                THUMBNAIL_SIZE,
+                THUMBNAIL_SIZE,
+                True  # preserve_aspect_ratio
+            )
         except Exception as e:
-            print(f"Error creando miniatura para {image_path}: {e}")
+            print(f"GdkPixbuf no pudo cargar {image_path}, intentando con Pillow...")
+            # Fallback a Pillow para formatos no soportados por GdkPixbuf
+            try:
+                # Cargar con Pillow
+                pil_img = Image.open(image_path)
+                pil_img.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE), Image.Resampling.LANCZOS)
+                
+                # Convertir a RGB si es necesario
+                if pil_img.mode != 'RGB':
+                    pil_img = pil_img.convert('RGB')
+                
+                # Convertir PIL a bytes PNG
+                img_bytes = io.BytesIO()
+                pil_img.save(img_bytes, format='PNG')
+                img_data = img_bytes.getvalue()
+                
+                # Crear GdkPixbuf desde bytes usando GLib.Bytes
+                bytes_obj = GLib.Bytes.new(img_data)
+                stream = Gio.MemoryInputStream.new_from_bytes(bytes_obj)
+                pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, None)
+                
+                print(f"✅ Imagen AVIF cargada con Pillow: {os.path.basename(image_path)}")
+            except Exception as e2:
+                print(f"❌ Error cargando imagen con Pillow {image_path}: {e2}")
+                import traceback
+                traceback.print_exc()
+                return
+        
+        if pixbuf is None:
+            print(f"⚠️ No se pudo cargar la imagen: {image_path}")
+            return
+        
+        image = Gtk.Image.new_from_pixbuf(pixbuf)
+        image.set_size_request(THUMBNAIL_SIZE, THUMBNAIL_SIZE)
+        box.append(image)
+        
+        # Nombre del archivo (truncado) - texto más pequeño
+        label = Gtk.Label()
+        filename = os.path.basename(image_path)
+        if len(filename) > 15:
+            filename = filename[:12] + "..."
+        label.set_text(filename)
+        label.add_css_class('caption')
+        label.set_ellipsize(3)  # ELLIPSIZE_END
+        box.append(label)
+        
+        button.set_child(box)
+        
+        # Conectar click - pasar el botón como parámetro adicional
+        button.connect('clicked', self.on_thumbnail_clicked, image_path)
+        
+        # Agregar al flowbox
+        self.flowbox.append(button)
     
     def on_thumbnail_clicked(self, button, image_path):
         """Callback cuando se hace clic en una miniatura."""
@@ -189,26 +218,125 @@ class ImageSidebar(Gtk.Box):
         self.on_image_selected_cb(image_path, button)
     
     def on_change_folder(self, button):
-        """Muestra un diálogo para cambiar la carpeta de imágenes."""
-        dialog = Gtk.FileDialog()
+        """Muestra un diálogo personalizado para cambiar la carpeta de imágenes."""
+        # Crear ventana de diálogo
+        dialog = Gtk.Window()
         dialog.set_title(i18n.t('sidebar.select_folder'))
+        dialog.set_modal(True)
+        dialog.set_transient_for(self.get_root())
+        dialog.set_default_size(500, 400)
         
-        # Establecer carpeta inicial
-        if os.path.exists(self.pictures_dir):
-            initial_folder = Gio.File.new_for_path(self.pictures_dir)
-            dialog.set_initial_folder(initial_folder)
+        # Box principal
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        main_box.set_margin_top(10)
+        main_box.set_margin_bottom(10)
+        main_box.set_margin_start(10)
+        main_box.set_margin_end(10)
+        dialog.set_child(main_box)
         
-        # Abrir diálogo de selección de carpeta
-        dialog.select_folder(self.get_root(), None, self.on_folder_selected)
+        # Label de instrucciones
+        label = Gtk.Label(label=i18n.t('sidebar.select_folder_instruction'))
+        label.set_xalign(0)
+        main_box.append(label)
+        
+        # Área con scroll para el árbol de carpetas
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_vexpand(True)
+        scroll.set_hexpand(True)
+        main_box.append(scroll)
+        
+        # TreeView con modelo
+        store = Gtk.TreeStore(str, str)  # (nombre visible, ruta completa)
+        tree = Gtk.TreeView(model=store)
+        tree.set_headers_visible(False)
+        scroll.set_child(tree)
+        
+        # Columna de texto
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Carpeta", renderer, text=0)
+        tree.append_column(column)
+        
+        # Variable para guardar la carpeta seleccionada
+        selected_folder = [self.pictures_dir]  # Lista mutable para closure
+        
+        def on_tree_selection_changed(selection):
+            model, treeiter = selection.get_selected()
+            if treeiter:
+                selected_folder[0] = model[treeiter][1]
+        
+        selection = tree.get_selection()
+        selection.connect("changed", on_tree_selection_changed)
+        
+        # Poblar árbol con carpetas comunes y sus subdirectorios
+        def add_folder_to_tree(parent_iter, folder_path, max_depth=2, current_depth=0):
+            try:
+                if current_depth >= max_depth:
+                    return
+                    
+                for entry in sorted(Path(folder_path).iterdir()):
+                    if entry.is_dir() and not entry.name.startswith('.'):
+                        folder_iter = store.append(parent_iter, [f"📁 {entry.name}", str(entry)])
+                        # Agregar subdirectorios recursivamente
+                        if current_depth < max_depth - 1:
+                            add_folder_to_tree(folder_iter, entry, max_depth, current_depth + 1)
+            except PermissionError:
+                pass
+            except Exception as e:
+                print(f"Error listando {folder_path}: {e}")
+        
+        # Agregar carpetas principales
+        home = Path.home()
+        
+        # Home
+        home_iter = store.append(None, [f"🏠 {home.name}", str(home)])
+        add_folder_to_tree(home_iter, home, max_depth=3)
+        
+        # Carpetas comunes
+        common_folders = ['Documents', 'Downloads', 'Pictures', 'Music', 'Videos', 
+                         'Documentos', 'Descargas', 'Imágenes', 'Música', 'Vídeos']
+        
+        for folder_name in common_folders:
+            folder_path = home / folder_name
+            if folder_path.exists() and folder_path.is_dir():
+                folder_iter = store.append(None, [f"📁 {folder_name}", str(folder_path)])
+                add_folder_to_tree(folder_iter, folder_path, max_depth=2)
+        
+        # Expandir home por defecto
+        tree.expand_row(Gtk.TreePath.new_first(), False)
+        
+        # Seleccionar carpeta actual si está en el árbol
+        def select_current_folder():
+            def search_and_select(model, path, iter, search_path):
+                if model[iter][1] == search_path:
+                    tree.get_selection().select_iter(iter)
+                    tree.scroll_to_cell(path, None, True, 0.5, 0.5)
+                    return True
+                return False
+            
+            store.foreach(search_and_select, self.pictures_dir)
+        
+        GLib.idle_add(select_current_folder)
+        
+        # Botones
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        button_box.set_halign(Gtk.Align.END)
+        main_box.append(button_box)
+        
+        cancel_btn = Gtk.Button(label=i18n.t('app.dialogs.cancel'))
+        cancel_btn.connect('clicked', lambda w: dialog.close())
+        button_box.append(cancel_btn)
+        
+        select_btn = Gtk.Button(label=i18n.t('sidebar.select'))
+        select_btn.add_css_class('suggested-action')
+        select_btn.connect('clicked', lambda w: self.on_folder_dialog_select(dialog, selected_folder[0]))
+        button_box.append(select_btn)
+        
+        dialog.present()
     
-    def on_folder_selected(self, dialog, result):
-        """Callback cuando se selecciona una nueva carpeta."""
-        try:
-            folder = dialog.select_folder_finish(result)
-            if folder:
-                self.pictures_dir = folder.get_path()
-                print(f"Nueva carpeta seleccionada: {self.pictures_dir}")
-                self.load_images()
-        except Exception as e:
-            # Usuario canceló o error
-            print(f"Selección de carpeta cancelada o error: {e}")
+    def on_folder_dialog_select(self, dialog, folder_path):
+        """Callback cuando se confirma la selección de carpeta."""
+        if folder_path and os.path.exists(folder_path):
+            self.pictures_dir = folder_path
+            print(f"Nueva carpeta seleccionada: {self.pictures_dir}")
+            self.load_images()
+        dialog.close()

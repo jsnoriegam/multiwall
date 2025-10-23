@@ -36,7 +36,9 @@
       "title": "📁 Image Gallery",
       "change_folder": "Change folder",
       "refresh": "Refresh images",
-      "select_folder": "Select images folder"
+      "select_folder": "Select images folder",
+      "select_folder_instruction": "Select a folder:",
+      "select": "Select"
     }
   }
 }
