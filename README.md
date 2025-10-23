@@ -1,3 +1,5 @@
+[![Buy Me A Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=☕&slug=jsnoriegam&button_colour=FFDD00&font_colour=000000&font_family=Inter&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/jsnoriegam)
+
 # 🖼️ MultiWall - Multi-Monitor Wallpaper Manager
 
 Una aplicación GTK4 moderna para gestionar fondos de pantalla en configuraciones multi-monitor. Con MultiWall puedes establecer diferentes imágenes para cada monitor con vista previa en tiempo real.
@@ -184,3 +186,4 @@ Si encuentras algún problema, por favor abre un issue en GitHub con:
 ---
 
 Hecho con ❤️ usando GTK4 y Python
+
