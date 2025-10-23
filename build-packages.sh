@@ -95,7 +95,7 @@ build_flatpak() {
         --network=host \
         multiwall-flatpak
     
-    echo -e "${GREEN}✅ Flatpak generado en: ${OUTPUT_DIR}/MultiWall.flatpak${RESET}"
+    echo -e "${GREEN}✅ Flatpak generado en: ${OUTPUT_DIR}/MultiWall-${VERSION}-x86_64.flatpak${RESET}"
 }
 
 # --- MODIFICADO: Procesar argumentos (ahora usa $1 después del shift) ---

@@ -11,17 +11,14 @@ finish-args:
   - --share=ipc
   
   # Acceso a archivos de usuario
-  - --filesystem=xdg-pictures:ro
+  #- --filesystem=xdg-pictures:ro
+  - --filesystem=home
   - --filesystem=xdg-config/multiwall:create
   
   # Acceso a D-Bus para gsettings
   - --socket=session-bus
   - --talk-name=org.gnome.Shell
   - --talk-name=org.freedesktop.portal.Desktop
-  
-  # Acceso a configuración de GNOME
-  - --filesystem=xdg-config/dconf:rw
-  - --env=DCONF_USER_CONFIG_DIR=.config/dconf
   
   # GPU para preview
   - --device=dri
