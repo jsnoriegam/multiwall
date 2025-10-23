@@ -127,6 +127,6 @@ echo -e "${YELLOW}Para instalar:${RESET}"
 if [ -f "$OUTPUT_DIR/MultiWall-${VERSION}-x86_64.AppImage" ]; then
     echo -e "  AppImage: ${GREEN}chmod +x $OUTPUT_DIR/MultiWall-${VERSION}-x86_64.AppImage && $OUTPUT_DIR/MultiWall-${VERSION}-x86_64.AppImage${RESET}"
 fi
-if [ -f "$OUTPUT_DIR/MultiWall.flatpak" ]; then
-    echo -e "  Flatpak:  ${GREEN}flatpak install --user $OUTPUT_DIR/MultiWall.flatpak${RESET}"
+if [ -f "$OUTPUT_DIR/MultiWall-${VERSION}-x86_64.flatpak" ]; then
+    echo -e "  Flatpak:  ${GREEN}flatpak install --user $OUTPUT_DIR/MultiWall-${VERSION}-x86_64.flatpak${RESET}"
 fi

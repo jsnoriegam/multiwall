@@ -332,7 +332,10 @@ class MultiWallApp(Gtk.Application):
 
     def on_apply(self, *_):
         try:
-            # Guardar configuración automáticamente antes de aplicar (incluyendo último directorio)
+            # Importar el módulo de wallpaper
+            from .wallpaper_setter import apply_wallpaper, get_wallpaper_path
+            
+            # Guardar configuración automáticamente antes de aplicar
             save_config({
                 'monitors': self.gather_states(),
                 'last_directory': self.last_directory
@@ -341,57 +344,34 @@ class MultiWallApp(Gtk.Application):
             # Generar imagen combinada
             combined = compose_image(self.monitors, self.gather_states())
             
+            # Obtener la ruta apropiada según el entorno
+            output_path = get_wallpaper_path()
+            
             # Asegurar que el directorio existe
-            output_path = Path(TMP_OUTPUT)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             
             # Guardar imagen
-            combined.convert('RGB').save(str(output_path), quality=95)
+            combined.convert('RGB').save(output_path, quality=95)
             print(f"Wallpaper guardado en: {output_path}")
             
-            # Intentar aplicar con gsettings (funciona tanto en Docker con D-Bus como fuera)
-            try:
-                subprocess.run([
-                    'gsettings', 'set', 'org.gnome.desktop.background',
-                    'picture-uri', f'file://{output_path}'
-                ], check=True, capture_output=True, text=True)
-                subprocess.run([
-                    'gsettings', 'set', 'org.gnome.desktop.background',
-                    'picture-uri-dark', f'file://{output_path}'
-                ], check=True, capture_output=True, text=True)
-                subprocess.run([
-                    'gsettings', 'set', 'org.gnome.desktop.background',
-                    'picture-options', 'spanned'
-                ], check=True, capture_output=True, text=True)
-                
-                print("✅ Wallpaper aplicado exitosamente con gsettings")
+            # Aplicar wallpaper usando el método apropiado
+            success, message, script_path = apply_wallpaper(output_path)
+            
+            if success:
+                print(f"✅ {message}")
                 dialog = Gtk.AlertDialog(message=i18n.t('app.dialogs.applied'))
                 dialog.show(self.window)
+            else:
+                print(f"⚠️ {message}")
+                if script_path:
+                    full_message = (
+                        f"✅ Wallpaper generado en:\n{output_path}\n\n"
+                        f"⚠️ {message}"
+                    )
+                else:
+                    full_message = f"⚠️ {message}"
                 
-            except subprocess.CalledProcessError as gsettings_error:
-                # Si falla gsettings (no hay D-Bus), crear script de respaldo
-                print(f"⚠️ gsettings falló: {gsettings_error}")
-                print("Creando script de aplicación manual...")
-                
-                script_path = output_path.parent / "apply_wallpaper.sh"
-                script_content = f"""#!/bin/bash
-gsettings set org.gnome.desktop.background picture-uri 'file://{output_path}'
-gsettings set org.gnome.desktop.background picture-uri-dark 'file://{output_path}'
-gsettings set org.gnome.desktop.background picture-options 'spanned'
-echo "✅ Wallpaper aplicado correctamente"
-"""
-                script_path.write_text(script_content)
-                script_path.chmod(0o755)
-                
-                message = (
-                    f"✅ Wallpaper generado en:\n{output_path}\n\n"
-                    f"⚠️ No se pudo aplicar automáticamente.\n"
-                    f"Para aplicarlo, ejecuta en tu terminal:\n"
-                    f"bash {script_path}"
-                )
-                print(message)
-                
-                dialog = Gtk.AlertDialog(message=message)
+                dialog = Gtk.AlertDialog(message=full_message)
                 dialog.show(self.window)
                 
         except Exception as e:

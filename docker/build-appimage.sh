@@ -23,6 +23,16 @@ source "$APP_DIR/usr/venv/bin/activate"
 pip install --upgrade pip
 pip install PyGObject Pillow pyyaml python-i18n
 
+# Verificar soporte de formatos en Pillow
+python3 << 'EOF'
+from PIL import Image
+import sys
+print("📊 Formatos soportados por Pillow:")
+print(f"  - AVIF: {'AVIF' in Image.registered_extensions().values()}")
+print(f"  - WEBP: {'WEBP' in Image.registered_extensions().values()}")
+print(f"  - Extensions: {list(Image.registered_extensions().keys())}")
+EOF
+
 # Copiar aplicación
 echo "📋 Copiando aplicación..."
 cp -r /app/multiwall "$APP_DIR/usr/share/multiwall/"
@@ -74,21 +84,20 @@ EOF
 cp "$APP_DIR/usr/share/applications/multiwall.desktop" "$APP_DIR/multiwall.desktop"
 
 # Copiar icono (usar el existente en la raíz)
-if [ -f "/app/icon.png" ]; then
+if [ -f "/app/appimage/icon.png" ]; then
     echo "📸 Usando icono existente..."
     cp /app/appimage/icon.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.png"
-    cp /app/appimage/icon.png "$APP_DIR/multiwall.png"    # <-- copiar icon a la raíz del AppDir
+    cp /app/appimage/icon.png "$APP_DIR/multiwall.png"
 else
     echo "⚠️ Advertencia: No se encontró icon.png, creando icono por defecto..."
     # Crear icono simple SVG como fallback
-    cat > "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.svg" << 'EOF'
+    cat > "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.svg" << 'SVGEOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
   <rect width="256" height="256" fill="#3584e4"/>
   <text x="128" y="140" font-size="120" text-anchor="middle" fill="white">🖼️</text>
 </svg>
-EOF
-    # copiar fallback SVG al root del AppDir (appimagetool detecta svg también)
+SVGEOF
     cp "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.svg" "$APP_DIR/multiwall.svg"
 fi
 
