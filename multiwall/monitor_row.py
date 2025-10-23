@@ -5,6 +5,10 @@ from gi import require_version
 require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gdk, Gio
 
+from .logger import get_logger
+
+logger = get_logger(__name__)
+
 IMAGE_FILTERS = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp", "*.avif"]
 DEFAULT_OPTIONS = {'background': '#000000'}
 
@@ -103,13 +107,13 @@ class MonitorRow(Gtk.Box):
     def on_mode_changed(self, combo, pspec):
         """Callback cuando cambia el modo del wallpaper."""
         mode = self.mode_map[combo.get_selected()]
-        print(f"Monitor {self.index}: Modo cambiado a '{mode}'")
+        logger.debug(f"Monitor {self.index}: Modo cambiado a '{mode}'")
         self.on_change_cb(self.index)
 
     def on_color_changed(self, color_button):
         """Callback cuando cambia el color de fondo."""
         rgba = color_button.get_rgba()
-        print(f"Monitor {self.index}: Color cambiado")
+        logger.debug(f"Monitor {self.index}: Color cambiado")
         self.on_change_cb(self.index)
 
     def on_choose_file(self, button):
@@ -143,10 +147,10 @@ class MonitorRow(Gtk.Box):
                 
                 # Actualizar el último directorio usado
                 self.app.last_directory = str(Path(self.selected_file).parent)
-                print(f"Último directorio actualizado: {self.app.last_directory}")
+                logger.debug(f"Último directorio actualizado: {self.app.last_directory}")
                 
                 self.file_button.set_label(os.path.basename(self.selected_file))
-                print(f"Monitor {self.index}: Imagen seleccionada - {self.selected_file}")
+                logger.debug(f"Monitor {self.index}: Imagen seleccionada - {self.selected_file}")
                 self.on_change_cb(self.index)
         except Exception as e:
             # Usuario canceló o hubo error
@@ -157,7 +161,7 @@ class MonitorRow(Gtk.Box):
         if os.path.exists(file_path):
             self.selected_file = file_path
             self.file_button.set_label(os.path.basename(file_path))
-            print(f"Monitor {self.index}: Imagen establecida desde sidebar - {file_path}")
+            logger.debug(f"Monitor {self.index}: Imagen establecida desde sidebar - {file_path}")
             
             # Actualizar el último directorio usado
             self.app.last_directory = str(Path(file_path).parent)
@@ -167,5 +171,5 @@ class MonitorRow(Gtk.Box):
         rgba = self.color.get_rgba()
         color_hex = f'#{int(rgba.red*255):02x}{int(rgba.green*255):02x}{int(rgba.blue*255):02x}'
         state = {'file': self.selected_file, 'mode': mode, 'background': color_hex}
-        print(f"Monitor {self.index} get_state: {state}")
+        logger.debug(f"Monitor {self.index} get_state: {state}")
         return state

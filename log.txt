@@ -1,0 +1,45 @@
+2025-10-23 09:40:27 - multiwall - INFO - Logging to file: /home/juansa/.config/multiwall/logs/multiwall_20251023.log
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Language detected from LANG: es
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Ruta de traducciones: /tmp/.mount_MultiWLUCTVd/usr/share/multiwall/multiwall/translations
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Ruta existe: True
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Archivos en translations: [PosixPath('/tmp/.mount_MultiWLUCTVd/usr/share/multiwall/multiwall/translations/en.json'), PosixPath('/tmp/.mount_MultiWLUCTVd/usr/share/multiwall/multiwall/translations/es.json')]
+2025-10-23 09:40:27 - multiwall.config - INFO - Configuration loaded from: /home/juansa/.config/multiwall/config.json
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Directorio de imágenes del sistema: /home/juansa/Imágenes
+2025-10-23 09:40:27 - multiwall.image_sidebar - INFO - Encontradas 3 imágenes en /home/juansa/Imágenes/Wallpapers
+2025-10-23 09:40:27 - multiwall.app - DEBUG - === Actualizando preview ===
+2025-10-23 09:40:27 - multiwall.monitor_row - DEBUG - Monitor 0 get_state: {'file': '/home/juansa/Imágenes/Wallpapers/bg_1.avif', 'mode': 'fill', 'background': '#000000'}
+2025-10-23 09:40:27 - multiwall.monitor_row - DEBUG - Monitor 1 get_state: {'file': '/home/juansa/Imágenes/Wallpapers/bg_2.jpg', 'mode': 'fill', 'background': '#000000'}
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Estados: {'0': {'file': '/home/juansa/Imágenes/Wallpapers/bg_1.avif', 'mode': 'fill', 'background': '#000000'}, '1': {'file': '/home/juansa/Imágenes/Wallpapers/bg_2.jpg', 'mode': 'fill', 'background': '#000000'}}
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Monitores: 2
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Monitor geometría: 0, 0, 1080x1920
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Monitor geometría: 1080, 424, 1920x1080
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Canvas total: 3000x1920
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Intentando abrir: /home/juansa/Imágenes/Wallpapers/bg_1.avif
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Archivo existe: True
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Es archivo: True
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Tamaño: 281745 bytes
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Permisos: 0o100644
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Abriendo con Image.open()...
+2025-10-23 09:40:27 - multiwall.composer - ERROR - ❌ Error abriendo imagen /home/juansa/Imágenes/Wallpapers/bg_1.avifTipo: UnidentifiedImageErrorMensaje: {e}
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - ⚠️ Problema con archivo AVIF
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - AVIF support: False
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Available features: ['pil', 'freetype2', 'littlecms2', 'webp', 'webp_anim', 'webp_mux', 'transp_webp', 'raqm', 'fribidi', 'harfbuzz', 'libjpeg_turbo', 'zlib_ng', 'libimagequant', 'xcb', 'jpg', 'jpg_2000', 'zlib', 'libtiff']
+2025-10-23 09:40:27 - multiwall.composer - WARNING - Monitor 0: ⚠️ No se pudo cargar imagen desde /home/juansa/Imágenes/Wallpapers/bg_1.avif
+2025-10-23 09:40:27 - multiwall.composer - ERROR - Monitor 0: ❌ Usando color de fondo (imagen falló)
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Intentando abrir: /home/juansa/Imágenes/Wallpapers/bg_2.jpg
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Archivo existe: True
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Es archivo: True
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Tamaño: 533428 bytes
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Permisos: 0o100644
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Abriendo con Image.open()...
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Imagen abierta: formato=JPEG, modo=RGB, tamaño=(1920, 1080)
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Convirtiendo a RGBA...
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - ✅ Conversión exitosa: RGBA, (1920, 1080)
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Monitor 1: Imagen cargada desde /home/juansa/Imágenes/Wallpapers/bg_2.jpg (formato: None)
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Aplicando modo 'fill' a imagen (1920, 1080) -> (1920, 1080)
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Resultado: (1920, 1080)
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Escalando preview a 1000x640
+2025-10-23 09:40:27 - multiwall.composer - DEBUG - Preview guardado en /tmp/multiwall_debug_preview.png
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Preview generado: (1000, 640)
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Pixbuf creado: 1000x640
+2025-10-23 09:40:27 - multiwall.app - DEBUG - Preview actualizado correctamente

@@ -129,8 +129,8 @@ jobs:
       - name: Test Flatpak
         run: |
           # Instalar Flatpak
-          sudo apt-get update
-          sudo apt-get install -y flatpak
+          sudo apt update
+          sudo apt install -y flatpak
           
           # Agregar repositorio Flathub
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -162,8 +162,8 @@ jobs:
       
       - name: Test AppImage
         run: |
-          sudo apt-get update
-          sudo apt-get install -y file
+          sudo apt update
+          sudo apt install -y file
           
           # Encontrar el archivo AppImage
           APPIMAGE_FILE=$(ls MultiWall-*.AppImage 2>/dev/null | head -n 1)

@@ -6,6 +6,9 @@ import io
 from gi import require_version
 require_version('Gtk', '4.0')
 from gi.repository import Gtk, GdkPixbuf, GLib, Gio
+from .logger import get_logger
+
+logger = get_logger(__name__)
 
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp', '.webp', '.gif', '.avif'}
 THUMBNAIL_SIZE = 100
@@ -117,7 +120,7 @@ class ImageSidebar(Gtk.Box):
         
         # Verificar que el directorio existe
         if not os.path.exists(self.pictures_dir):
-            print(f"El directorio {self.pictures_dir} no existe")
+            logger.warning(f"El directorio {self.pictures_dir} no existe")
             return
         
         # Buscar archivos de imagen
@@ -126,10 +129,10 @@ class ImageSidebar(Gtk.Box):
                 if entry.is_file() and entry.suffix.lower() in IMAGE_EXTENSIONS:
                     self.current_images.append(str(entry))
         except Exception as e:
-            print(f"Error listando imágenes: {e}")
+            logger.error(f"Error listando imágenes: {e}")
             return
         
-        print(f"Encontradas {len(self.current_images)} imágenes en {self.pictures_dir}")
+        logger.info(f"Encontradas {len(self.current_images)} imágenes en {self.pictures_dir}")
         
         # Crear miniaturas
         for image_path in self.current_images:
@@ -157,7 +160,7 @@ class ImageSidebar(Gtk.Box):
                 True  # preserve_aspect_ratio
             )
         except Exception as e:
-            print(f"GdkPixbuf no pudo cargar {image_path}, intentando con Pillow...")
+            logger.error(f"GdkPixbuf no pudo cargar {image_path}, intentando con Pillow...")
             # Fallback a Pillow para formatos no soportados por GdkPixbuf
             try:
                 # Cargar con Pillow
@@ -178,15 +181,15 @@ class ImageSidebar(Gtk.Box):
                 stream = Gio.MemoryInputStream.new_from_bytes(bytes_obj)
                 pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, None)
                 
-                print(f"✅ Imagen AVIF cargada con Pillow: {os.path.basename(image_path)}")
+                logger.info(f"✅ Imagen AVIF cargada con Pillow: {os.path.basename(image_path)}")
             except Exception as e2:
-                print(f"❌ Error cargando imagen con Pillow {image_path}: {e2}")
+                logger.error(f"❌ Error cargando imagen con Pillow {image_path}: {e2}")
                 import traceback
                 traceback.print_exc()
                 return
         
         if pixbuf is None:
-            print(f"⚠️ No se pudo cargar la imagen: {image_path}")
+            logger.warning(f"⚠️ No se pudo cargar la imagen: {image_path}")
             return
         
         image = Gtk.Image.new_from_pixbuf(pixbuf)
@@ -213,7 +216,7 @@ class ImageSidebar(Gtk.Box):
     
     def on_thumbnail_clicked(self, button, image_path):
         """Callback cuando se hace clic en una miniatura."""
-        print(f"Clic en miniatura: {image_path}")
+        logger.debug(f"Clic en miniatura: {image_path}")
         # Pasar tanto la ruta de la imagen como el botón
         self.on_image_selected_cb(image_path, button)
     
@@ -282,7 +285,7 @@ class ImageSidebar(Gtk.Box):
             except PermissionError:
                 pass
             except Exception as e:
-                print(f"Error listando {folder_path}: {e}")
+                logger.error(f"Error listando {folder_path}: {e}")
         
         # Agregar carpetas principales
         home = Path.home()
@@ -337,6 +340,6 @@ class ImageSidebar(Gtk.Box):
         """Callback cuando se confirma la selección de carpeta."""
         if folder_path and os.path.exists(folder_path):
             self.pictures_dir = folder_path
-            print(f"Nueva carpeta seleccionada: {self.pictures_dir}")
+            logger.debug(f"Nueva carpeta seleccionada: {self.pictures_dir}")
             self.load_images()
         dialog.close()

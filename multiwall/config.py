@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
+from .logger import get_logger
 
+logger = get_logger(__name__)
 
 APP_NAME = "multiwall"
 CONFIG_DIR = Path.home() / ".config" / APP_NAME
@@ -17,12 +19,11 @@ def ensure_config_dir():
     """Asegura que el directorio de configuración existe con permisos correctos."""
     try:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        # Asegurar permisos de escritura
         CONFIG_DIR.chmod(0o755)
-        print(f"Directorio de configuración: {CONFIG_DIR}")
+        logger.info(f"Config directory: {CONFIG_DIR}")
         return True
     except Exception as e:
-        print(f"Error creando directorio de configuración: {e}")
+        logger.error(f"Error creating config directory: {e}")
         return False
 
 
@@ -32,19 +33,19 @@ def load_config():
         try:
             content = CONFIG_FILE.read_text()
             config = json.loads(content)
-            print(f"Configuración cargada desde: {CONFIG_FILE}")
+            logger.info(f"Configuration loaded from: {CONFIG_FILE}")
             return config
         except Exception as e:
-            print(f"Error leyendo configuración: {e}")
+            logger.error(f"Error reading configuration: {e}")
             return {}
-    print(f"No existe configuración previa en: {CONFIG_FILE}")
+    logger.info(f"No previous configuration at: {CONFIG_FILE}")
     return {}
 
 
 def save_config(cfg):
     """Guarda la configuración en el archivo JSON."""
     if not ensure_config_dir():
-        print("No se pudo crear el directorio de configuración")
+        logger.error("Could not create config directory")
         return False
     
     try:
@@ -56,15 +57,13 @@ def save_config(cfg):
         
         # Verificar que se guardó correctamente
         if CONFIG_FILE.exists():
-            print(f"✅ Configuración guardada exitosamente en: {CONFIG_FILE}")
-            print(f"   Tamaño: {CONFIG_FILE.stat().st_size} bytes")
+            logger.info(f"Configuration saved successfully to: {CONFIG_FILE}")
+            logger.debug(f"File size: {CONFIG_FILE.stat().st_size} bytes")
             return True
         else:
-            print(f"❌ El archivo no se creó: {CONFIG_FILE}")
+            logger.error(f"File was not created: {CONFIG_FILE}")
             return False
             
     except Exception as e:
-        print(f"❌ Error guardando configuración: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Error saving configuration: {e}", exc_info=True)
         return False
