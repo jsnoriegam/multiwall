@@ -14,6 +14,7 @@ mkdir -p "$APP_DIR/usr/bin" "$APP_DIR/usr/lib" "$APP_DIR/usr/share/multiwall"
 echo "📦 Copiando aplicación..."
 # Copia tu aplicación Python al AppDir
 cp -r /app/multiwall "$APP_DIR/usr/share/multiwall/"
+cp -r /app/fonts "$APP_DIR/usr/share/multiwall/"
 cp /app/main.py "$APP_DIR/usr/share/multiwall/"
 cp /app/requirements.txt "$APP_DIR/usr/share/multiwall/"
 

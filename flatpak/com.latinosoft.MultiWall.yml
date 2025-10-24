@@ -48,8 +48,10 @@ modules:
       - mkdir -p /app/bin
       - mkdir -p /app/share/multiwall
       - cp -r multiwall /app/share/multiwall/
+      - cp -r fonts /app/share/multiwall/
       - cp main.py /app/share/multiwall/
       - cp requirements.txt /app/share/multiwall/
+      - ls -la /app/share/multiwall/fonts/
       
       # Crear script de lanzamiento
       - |

@@ -108,4 +108,4 @@ fi
 
 # 6️⃣ Ejecutar contenedor
 echo -e "${CYAN}→ Ejecutando aplicación dentro del contenedor...${RESET}"
-docker run "${DOCKER_FLAGS[@]}" "$IMAGE_NAME" /app/.venv/bin/python main.py
+docker run "${DOCKER_FLAGS[@]}" "$IMAGE_NAME" /app/.venv/bin/python main.py "$@"

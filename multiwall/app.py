@@ -131,6 +131,21 @@ class MultiWallApp(Gtk.Application):
         
         super().__init__(application_id='com.multiwall.app')
         logger.info("Initializing MultiWall application")
+
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_string("""
+        .rounded-box {
+            border-radius: 20px;
+            background-color: #f0f0f0;
+            background-clip: padding-box;
+            -gtk-clip-to-allocation: true;
+        }
+        """)
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
         
         self.settings = load_config()
         # Use last saved directory, or detect system default
@@ -189,6 +204,7 @@ class MultiWallApp(Gtk.Application):
         preview_frame.set_child(scrolled_window)
 
         preview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        preview_box.add_css_class('rounded-box')
         preview_box.set_margin_top(20)
         preview_box.set_margin_bottom(20)
         preview_box.set_margin_start(20)
@@ -197,8 +213,9 @@ class MultiWallApp(Gtk.Application):
         scrolled_window.set_child(preview_box)       
 
         self.preview = Gtk.Picture()
-        self.preview.set_vexpand(True)
-        self.preview.set_hexpand(True)
+        #self.preview.set_vexpand(True)
+        #self.preview.set_hexpand(True)
+
         preview_box.append(self.preview)
 
         # === CONTROLS AREA ===
