@@ -7,99 +7,66 @@ APP_NAME="MultiWall"
 APP_DIR="/build/${APP_NAME}.AppDir"
 VERSION="${VERSION:-0.1.0}"
 
-# Crear estructura AppDir
-mkdir -p "$APP_DIR/usr/bin"
-mkdir -p "$APP_DIR/usr/lib"
-mkdir -p "$APP_DIR/usr/share/applications"
-mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
-mkdir -p "$APP_DIR/usr/share/multiwall"
+# Limpiar AppDir
+rm -rf "$APP_DIR"
+mkdir -p "$APP_DIR/usr/bin" "$APP_DIR/usr/lib" "$APP_DIR/usr/share/multiwall"
 
-# Crear entorno virtual de Python
-echo "📦 Creando entorno virtual..."
-python3 -m venv "$APP_DIR/usr/venv"
-source "$APP_DIR/usr/venv/bin/activate"
-
-# Instalar dependencias
-pip install --upgrade pip
-pip install PyGObject Pillow pyyaml python-i18n
-
-# Verificar soporte de formatos en Pillow
-python3 << 'EOF'
-from PIL import Image
-import sys
-print("📊 Formatos soportados por Pillow:")
-print(f"  - AVIF: {'AVIF' in Image.registered_extensions().values()}")
-print(f"  - WEBP: {'WEBP' in Image.registered_extensions().values()}")
-print(f"  - Extensions: {list(Image.registered_extensions().keys())}")
-EOF
-
-# Copiar aplicación
-echo "📋 Copiando aplicación..."
+echo "📦 Copiando aplicación..."
+# Copia tu aplicación Python al AppDir
 cp -r /app/multiwall "$APP_DIR/usr/share/multiwall/"
 cp /app/main.py "$APP_DIR/usr/share/multiwall/"
 cp /app/requirements.txt "$APP_DIR/usr/share/multiwall/"
 
-# Crear script de lanzamiento
-cat > "$APP_DIR/usr/bin/multiwall" << 'EOF'
-#!/bin/bash
-APPDIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
-export PYTHONPATH="$APPDIR/usr/share/multiwall:$PYTHONPATH"
-source "$APPDIR/usr/venv/bin/activate"
-cd "$APPDIR/usr/share/multiwall"
-exec python3 main.py "$@"
-EOF
-chmod +x "$APP_DIR/usr/bin/multiwall"
+echo "🐍 Configurando entorno Python..."
+# Crear entorno virtual local (fuera de AppDir)
+python3 -m venv venv
+source venv/bin/activate
 
-# Crear AppRun
-cat > "$APP_DIR/AppRun" << 'EOF'
-#!/bin/bash
-APPDIR="$(dirname "$(readlink -f "$0")")"
-export PATH="$APPDIR/usr/bin:$PATH"
-export LD_LIBRARY_PATH="$APPDIR/usr/lib:$LD_LIBRARY_PATH"
-export PYTHONPATH="$APPDIR/usr/share/multiwall:$PYTHONPATH"
-export XDG_DATA_DIRS="$APPDIR/usr/share:$XDG_DATA_DIRS"
+# Instalar dependencias dentro del venv
+pip install --upgrade pip
+pip install -r /app/requirements.txt
 
-# Activar entorno virtual
-source "$APPDIR/usr/venv/bin/activate"
+# Copiar solo el venv al AppDir
+cp -r venv "$APP_DIR/usr/"
+
+PYTHON_VERSION=$(ls -d /usr/lib/python*.* | head -n 1 | xargs basename | sed 's/python//')
+
+# Copiar binarios del Python base al AppDir
+cp "$(which python3)" "$APP_DIR/usr/bin/"
+cp -r "/usr/lib/python$PYTHON_VERSION" "$APP_DIR/usr/lib/" || echo "⚠️ Saltando copia de stdlib (verifica ruta del Python base)"
+
+echo "⚙️ Creando AppRun..."
+cat > "$APP_DIR/AppRun" << EOF
+#!/bin/bash
+APPDIR="\$(dirname "\$(readlink -f "\$0")")"
+
+# Configurar entorno
+export PATH="\$APPDIR/usr/bin:\$PATH"
+export LD_LIBRARY_PATH="\$APPDIR/usr/lib:\$LD_LIBRARY_PATH"
+export PYTHONHOME="\$APPDIR/usr"
+export PYTHONPATH="\$APPDIR/usr/share/multiwall:\$APPDIR/usr/venv/lib/python$PYTHON_VERSION/site-packages:\$PYTHONPATH"
+export XDG_DATA_DIRS="\$APPDIR/usr/share:\$XDG_DATA_DIRS"
 
 # Ejecutar aplicación
-cd "$APPDIR/usr/share/multiwall"
-exec python3 main.py "$@"
+cd "\$APPDIR/usr/share/multiwall"
+exec "\$APPDIR/usr/bin/python3" main.py "\$@"
 EOF
 chmod +x "$APP_DIR/AppRun"
 
-# Crear archivo .desktop
-cat > "$APP_DIR/usr/share/applications/multiwall.desktop" << EOF
+echo "🧱 Creando archivo .desktop..."
+cat > "$APP_DIR/$APP.desktop" << EOF
 [Desktop Entry]
-Name=MultiWall
-Comment=Multi-Monitor Wallpaper Manager
-Exec=multiwall
-Icon=multiwall
 Type=Application
+Name=MultiWall
+Exec=AppRun
+Icon=multiwall
 Categories=Utility;Graphics;GTK;
-Terminal=false
 EOF
 
-# Copiar .desktop también a la raíz del AppDir (requisito de appimagetool)
-cp "$APP_DIR/usr/share/applications/multiwall.desktop" "$APP_DIR/multiwall.desktop"
-
-# Copiar icono (usar el existente en la raíz)
-if [ -f "/app/appimage/icon.png" ]; then
-    echo "📸 Usando icono existente..."
-    cp /app/appimage/icon.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.png"
-    cp /app/appimage/icon.png "$APP_DIR/multiwall.png"
-else
-    echo "⚠️ Advertencia: No se encontró icon.png, creando icono por defecto..."
-    # Crear icono simple SVG como fallback
-    cat > "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.svg" << 'SVGEOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
-  <rect width="256" height="256" fill="#3584e4"/>
-  <text x="128" y="140" font-size="120" text-anchor="middle" fill="white">🖼️</text>
-</svg>
-SVGEOF
-    cp "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.svg" "$APP_DIR/multiwall.svg"
-fi
+echo "🖼️ Copiando ícono..."
+mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
+cp /app/appimage/icon.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/multiwall.png"
+cp /app/appimage/icon.png "$APP_DIR/multiwall.png"
 
 # Generar AppImage
 echo "🎁 Generando AppImage..."
