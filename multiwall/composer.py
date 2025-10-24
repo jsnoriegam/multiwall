@@ -1,5 +1,5 @@
 import os
-from PIL import Image, ImageOps, ImageColor
+from PIL import Image, ImageOps, ImageColor, ImageDraw, ImageFont
 from .config import DEFAULT_OPTIONS
 from .logger import get_logger
 
@@ -150,6 +150,130 @@ def apply_mode_to_image(img, target_size, mode, bgcolor):
     return result
 
 
+def add_monitor_numbers(image, monitor_positions, scale_ratio=1.0, position='top-left'):
+    """
+    Add monitor numbers to the preview image.
+    
+    Args:
+        image: PIL Image to draw on
+        monitor_positions: List of (x, y, w, h) tuples for each monitor
+        scale_ratio: Scale ratio applied to the image (for positioning)
+        position: Position for the label ('top-left' or 'top-right')
+        
+    Returns:
+        PIL.Image: Image with monitor numbers drawn
+    """
+    logger.debug(f"Adding monitor numbers, scale_ratio={scale_ratio}, position={position}")
+    
+    # Create a copy to draw on
+    img_with_numbers = image.copy()
+    draw = ImageDraw.Draw(img_with_numbers)
+    
+    # Try to use a good font, fallback to default
+    try:
+        # Calculate font size based on image size
+        avg_dimension = (image.width + image.height) / 2
+        font_size = int(avg_dimension * 0.04)  # 4% of average dimension
+        font_size = max(24, min(font_size, 72))  # Between 24 and 72 pixels
+        
+        # Try different font paths
+        font_paths = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",  # macOS
+        ]
+        
+        font = None
+        for font_path in font_paths:
+            if os.path.exists(font_path):
+                try:
+                    font = ImageFont.truetype(font_path, font_size)
+                    logger.debug(f"Using font: {font_path} at size {font_size}")
+                    break
+                except Exception as e:
+                    logger.debug(f"Could not load font {font_path}: {e}")
+        
+        if font is None:
+            logger.debug("Using default font")
+            font = ImageFont.load_default()
+            
+    except Exception as e:
+        logger.warning(f"Error loading font: {e}, using default")
+        font = ImageFont.load_default()
+        font_size = 20
+    
+    # Draw number for each monitor
+    for i, (x, y, w, h) in enumerate(monitor_positions):
+        # Scale position according to preview scale
+        x_scaled = int(x * scale_ratio)
+        y_scaled = int(y * scale_ratio)
+        w_scaled = int(w * scale_ratio)
+        
+        # Monitor number (1-indexed for users)
+        text = str(i + 1)
+        
+        # Get text bounding box for accurate measurements
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # Padding around text
+        padding = int(font_size * 0.5)
+        
+        # Position based on preference (top-left by default)
+        if position == 'top-right':
+            text_x = x_scaled + w_scaled - text_width - padding
+        else:  # top-left
+            text_x = x_scaled + padding
+        
+        text_y = y_scaled + padding
+        
+        # Background padding - más generoso para centrar mejor
+        bg_padding_h = int(font_size * 0.4)  # Padding horizontal
+        bg_padding_v = int(font_size * 0.5)  # Padding vertical (más grande)
+        
+        # Calculate background rectangle centered on text
+        # bbox puede tener offsets, así que calculamos desde el baseline
+        bg_rect = [
+            text_x - bg_padding_h,                    # left
+            text_y + bbox[1] - bg_padding_v,         # top
+            text_x + text_width + bg_padding_h,      # right
+            text_y + bbox[3] + bg_padding_v          # bottom
+        ]
+        
+        # Create semi-transparent overlay ONLY for the rounded rectangle area
+        overlay = Image.new('RGBA', (
+            bg_rect[2] - bg_rect[0],  # width of background
+            bg_rect[3] - bg_rect[1]   # height of background
+        ), (0, 0, 0, 0))
+        
+        overlay_draw = ImageDraw.Draw(overlay)
+        # Draw rectangle at (0,0) since overlay is sized to background
+        overlay_draw.rounded_rectangle(
+            [0, 0, overlay.width, overlay.height],
+            radius=int(font_size * 0.2),
+            fill=(0, 0, 0, 180)  # Semi-transparent black
+        )
+        
+        # Paste the overlay at the correct position
+        img_with_numbers.paste(
+            overlay,
+            (bg_rect[0], bg_rect[1]),  # paste position
+            overlay  # use overlay as mask
+        )
+        
+        # Redraw on the composited image
+        draw = ImageDraw.Draw(img_with_numbers)
+        
+        # Draw white text
+        draw.text((text_x, text_y), text, font=font, fill=(255, 255, 255, 255))
+        
+        logger.debug(f"Monitor {i+1} label drawn at ({text_x}, {text_y})")
+    
+    return img_with_numbers
+
+
 def compose_image(monitors, states, scale_preview=None):
     """
     Compose the final wallpaper image from monitor configurations.
@@ -225,15 +349,18 @@ def compose_image(monitors, states, scale_preview=None):
             logger.debug(f"Scaling preview to {new_w}x{new_h} (ratio: {ratio:.2f})")
             scaled = canvas.resize((new_w, new_h), Image.LANCZOS)
             
+            # Add monitor numbers to the scaled preview
+            scaled_with_numbers = add_monitor_numbers(scaled, norm, scale_ratio=ratio, position='top-left')
+            
             # Debug: save to verify (optional)
             try:
                 debug_path = '/tmp/multiwall_debug_preview.png'
-                scaled.save(debug_path)
+                scaled_with_numbers.save(debug_path)
                 logger.debug(f"Debug preview saved to {debug_path}")
             except Exception as e:
                 logger.debug(f"Could not save debug preview: {e}")
             
-            return scaled
+            return scaled_with_numbers
     
     logger.info(f"Composition complete: {canvas.size}")
     return canvas
