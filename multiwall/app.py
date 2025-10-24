@@ -182,17 +182,23 @@ class MultiWallApp(Gtk.Application):
         preview_frame = Gtk.Frame()
         preview_frame.set_label(i18n.t('app.preview_label'))
         preview_frame.set_vexpand(True)
+        preview_frame.set_hexpand(True)
         content.append(preview_frame)
 
-        preview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        preview_box.set_margin_top(10)
-        preview_box.set_margin_bottom(10)
-        preview_box.set_margin_start(10)
-        preview_box.set_margin_end(10)
-        preview_frame.set_child(preview_box)
+        scrolled_window = Gtk.ScrolledWindow()
+        preview_frame.set_child(scrolled_window)
 
-        self.preview = Gtk.Image()
+        preview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        preview_box.set_margin_top(20)
+        preview_box.set_margin_bottom(20)
+        preview_box.set_margin_start(20)
+        preview_box.set_margin_end(20)
+
+        scrolled_window.set_child(preview_box)       
+
+        self.preview = Gtk.Picture()
         self.preview.set_vexpand(True)
+        self.preview.set_hexpand(True)
         preview_box.append(self.preview)
 
         # === CONTROLS AREA ===
@@ -332,15 +338,15 @@ class MultiWallApp(Gtk.Application):
             logger.debug("=== Updating preview ===")
             states = self.gather_states()
             
-            preview = compose_image(self.monitors, states, scale_preview=1000)
+            preview = compose_image(self.monitors, states, scale_preview=1200)
             logger.debug(f"Preview generated: {preview.size}")
             
-            self.preview.clear()
+            self.preview.set_pixbuf(None)  # Clear previous
             
             pix = pil_to_pixbuf(preview.convert('RGB'))
             logger.debug(f"Pixbuf created: {pix.get_width()}x{pix.get_height()}")
             
-            self.preview.set_from_pixbuf(pix)
+            self.preview.set_pixbuf(pix)
             logger.debug("Preview updated successfully")
         except Exception as e:
             logger.error(f"Error updating preview: {e}", exc_info=True)
