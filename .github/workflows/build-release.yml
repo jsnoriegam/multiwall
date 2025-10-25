@@ -41,21 +41,21 @@ jobs:
         run: sudo apt update && sudo apt-get install -y imagemagick
       
       - name: Make icon setup executable
-        run: chmod +x setup-icon.sh
+        run: chmod +x setup_icon.sh
 
       - name: Make build script executable
-        run: chmod +x build-packages.sh
+        run: chmod +x build_packages.sh
 
       - name: Setup icons
         run: ./setup_icon.sh        
       
       - name: Build AppImage
         run: |
-          VERSION=${{ steps.version.outputs.VERSION }} ./build-packages.sh appimage
+          VERSION=${{ steps.version.outputs.VERSION }} ./build_packages.sh appimage
       
       - name: Build Flatpak package
         run: |
-          VERSION=${{ steps.version.outputs.VERSION }} ./build-packages.sh flatpak
+          VERSION=${{ steps.version.outputs.VERSION }} ./build_packages.sh flatpak
       
       - name: List generated packages
         run: |
