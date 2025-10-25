@@ -16,12 +16,18 @@
         "error": "❌ Error applying wallpaper: %{error}",
         "select_monitor": "Select monitor for this image",
         "cancel": "Cancel"
+      },
+      "about": {
+        "title": "About MultiWall",
+        "description": "A modern GTK4 application for managing wallpapers in multi-monitor setups. Set different images for each monitor with real-time preview.",
+        "website": "Visit Website"
       }
     },
     "monitor": {
       "title": "🖥️ Monitor %{number}",
       "image_label": "🖼️ Image:",
       "select_image": "📁 Select image...",
+      "clear_image": "🗑️ Clear image",
       "mode_label": "📐 Mode:",
       "background_label": "🎨 Background:",
       "modes": {

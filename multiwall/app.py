@@ -140,6 +140,16 @@ class MultiWallApp(Gtk.Application):
             background-clip: padding-box;
             -gtk-clip-to-allocation: true;
         }
+        button.warning-button {
+            border: solid 1px #FFA500;
+            color: #FFA500;
+        }
+        button.warning-button:hover {
+            border: solid 1px #FF8C00;
+        }
+        button.warning-button:active {
+            border: solid 1px #FF7F50;
+        }
         """)
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(),
@@ -166,8 +176,54 @@ class MultiWallApp(Gtk.Application):
         self.window.present()
         logger.info("Application window presented")
 
+    def show_about_dialog(self, button):
+        """Show About dialog."""
+        logger.debug("Opening About dialog")
+        
+        about = Gtk.AboutDialog()
+        about.set_transient_for(self.window)
+        about.set_modal(True)
+        
+        # Basic info
+        about.set_program_name("MultiWall")
+        about.set_version("0.3.4")
+        about.set_comments(i18n.t('app.about.description'))
+        about.set_copyright("© 2025 Juan Salvador Noriega Madrid")
+        about.set_website("https://github.com/jsnoriegam/multiwall")
+        about.set_website_label(i18n.t('app.about.website'))
+        about.set_license_type(Gtk.License.MIT_X11)
+        
+        # Authors
+        about.set_authors(["Juan Salvador Noriega Madrid"])
+        
+        # Logo (if exists)
+        try:
+            icon_path = Path(__file__).parent / "icon.png"
+            if icon_path.exists():
+                texture = Gdk.Texture.new_from_filename(str(icon_path))
+
+                about.set_logo(texture)
+            else:
+                logger.debug(f"Icon not found at {icon_path}")
+        except Exception as e:
+            logger.warning(f"Could not load icon for About dialog: {e}")
+        
+        about.present()
+
     def build_ui(self):
         logger.debug("Building UI components")
+        
+        # Main container with header bar
+        header = Gtk.HeaderBar()
+        header.set_show_title_buttons(True)
+        self.window.set_titlebar(header)
+        
+        # About button in header
+        about_button = Gtk.Button()
+        about_button.set_icon_name("help-about-symbolic")
+        about_button.set_tooltip_text(i18n.t('app.about.title'))
+        about_button.connect("clicked", self.show_about_dialog)
+        header.pack_end(about_button)
         
         # Main horizontal container: content + sidebar
         main_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
@@ -185,10 +241,10 @@ class MultiWallApp(Gtk.Application):
         main.set_hexpand(True)
         main_container.append(main)
 
-        header = Gtk.Label(label=f"<b>{i18n.t('app.header')}</b>")
-        header.set_use_markup(True)
-        header.set_margin_bottom(10)
-        main.append(header)
+        header_label = Gtk.Label(label=f"<b>{i18n.t('app.header')}</b>")
+        header_label.set_use_markup(True)
+        header_label.set_margin_bottom(10)
+        main.append(header_label)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
         main.append(content)
@@ -213,8 +269,6 @@ class MultiWallApp(Gtk.Application):
         scrolled_window.set_child(preview_box)       
 
         self.preview = Gtk.Picture()
-        #self.preview.set_vexpand(True)
-        #self.preview.set_hexpand(True)
 
         preview_box.append(self.preview)
 

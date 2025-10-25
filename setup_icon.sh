@@ -35,6 +35,7 @@ mkdir -p appimage
 
 # Copiar icono con el nombre correcto para Flatpak
 "${IMAGEMAGICK_BIN}" "${SRC_ICON}" -resize 256x256 "appimage/icon.png"
+cp appimage/icon.png multiwall/
 
 # Crear directorio flatpak si no existe
 mkdir -p flatpak

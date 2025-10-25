@@ -16,12 +16,18 @@
         "error": "❌ Error al aplicar el fondo: %{error}",
         "select_monitor": "Selecciona el monitor para esta imagen",
         "cancel": "Cancelar"
+      },
+      "about": {
+        "title": "Acerca de MultiWall",
+        "description": "Una aplicación GTK4 moderna para gestionar fondos de pantalla en configuraciones multi-monitor. Establece diferentes imágenes para cada monitor con vista previa en tiempo real.",
+        "website": "Visitar Sitio Web"
       }
     },
     "monitor": {
       "title": "🖥️ Monitor %{number}",
       "image_label": "🖼️ Imagen:",
       "select_image": "📁 Seleccionar imagen...",
+      "clear_image": "🗑️ Limpiar imagen",
       "mode_label": "📐 Modo:",
       "background_label": "🎨 Fondo:",
       "modes": {

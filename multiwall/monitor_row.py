@@ -61,13 +61,27 @@ class MonitorRow(Gtk.Box):
         file_label.add_css_class('caption')
         file_box.append(file_label)
 
+        # Horizontal box for file button and clear button
+        file_button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        file_box.append(file_button_box)
+
         self.file_button = Gtk.Button()
+        self.file_button.set_hexpand(True)
         if self.selected_file:
             self.file_button.set_label(os.path.basename(self.selected_file))
         else:
             self.file_button.set_label(i18n.t('monitor.select_image'))
         self.file_button.connect('clicked', self.on_choose_file)
-        file_box.append(self.file_button)
+        file_button_box.append(self.file_button)
+
+        # Clear button
+        clear_button = Gtk.Button()
+        clear_button.set_icon_name('edit-clear-symbolic')
+        clear_button.set_tooltip_text(i18n.t('monitor.clear_image'))
+        clear_button.connect('clicked', self.on_clear_image)
+        # clear_button.add_css_class('destructive-action')
+        clear_button.add_css_class('warning-button')
+        file_button_box.append(clear_button)
 
         # === Mode ===
         mode_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -122,6 +136,13 @@ class MonitorRow(Gtk.Box):
         rgba = color_button.get_rgba()
         color_hex = f'#{int(rgba.red*255):02x}{int(rgba.green*255):02x}{int(rgba.blue*255):02x}'
         logger.info(f"Monitor {self.index}: Background color changed to {color_hex}")
+        self.on_change_cb(self.index)
+
+    def on_clear_image(self, button):
+        """Clear the selected image."""
+        logger.info(f"Monitor {self.index}: Clearing image")
+        self.selected_file = None
+        self.file_button.set_label(i18n.t('monitor.select_image'))
         self.on_change_cb(self.index)
 
     def on_choose_file(self, button):
