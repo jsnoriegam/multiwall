@@ -4,7 +4,7 @@ set -e
 echo "📸 Configurando icono para Flatpak..."
 
 # Verificar que existe icon.png
-if [ ! -f "icon.png" ]; then
+if [ ! -f "multiwall_icon.png" ]; then
     echo "❌ Error: No se encontró icon.png en la raíz del proyecto"
     exit 1
 fi
@@ -22,7 +22,7 @@ fi
 echo "Using ImageMagick binary: ${IMAGEMAGICK_BIN}"
 
 # Ejemplo de uso: generar icono 256x256 a partir de icon.svg o icon.png
-SRC_ICON="./icon.png"
+SRC_ICON="./multiwall_icon.png"
 if [ ! -f "${SRC_ICON}" ]; then
   echo "No se encontró ${SRC_ICON}, creando icono placeholder..."
   # crear un png simple si no existe

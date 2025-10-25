@@ -47,7 +47,7 @@ jobs:
         run: chmod +x build-packages.sh
 
       - name: Setup icons
-        run: ./setup-icon.sh        
+        run: ./setup_icon.sh        
       
       - name: Build AppImage
         run: |
