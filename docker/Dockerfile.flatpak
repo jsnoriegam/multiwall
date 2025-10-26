@@ -17,8 +17,7 @@ RUN flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.
 # Instalar SDKs necesarios
 RUN flatpak install -y --noninteractive flathub \
     org.gnome.Platform//48 \
-    org.gnome.Sdk//48 \
-    org.freedesktop.Sdk.Extension.rust-stable//23.08
+    org.gnome.Sdk//48
 
 # Usar argumentos para UID/GID del host
 ARG USER_ID=1000
