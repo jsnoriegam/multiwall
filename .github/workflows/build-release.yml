@@ -53,9 +53,19 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.VERSION }} ./build_packages.sh appimage
       
+      - name: Clean up AppImage build artifacts
+        run: |
+          docker rmi multiwall-appimage-local:latest
+          docker image prune -f
+      
       - name: Build Flatpak package
         run: |
           VERSION=${{ steps.version.outputs.VERSION }} ./build_packages.sh flatpak
+
+      - name: Clean up Flatpak build artifacts
+        run: |
+          docker rmi multiwall-flatpak:latest
+          docker image prune -f
       
       - name: List generated packages
         run: |
