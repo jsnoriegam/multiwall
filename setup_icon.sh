@@ -34,9 +34,9 @@ cp appimage/icon.png multiwall/
 mkdir -p flatpak
 
 # Copiar icono con el nombre correcto para Flatpak
-"${IMAGEMAGICK_BIN}" -background none "${SRC_ICON}" -resize 512x512 "flatpak/com.latinosoft.MultiWall.png"
+"${IMAGEMAGICK_BIN}" -background none "${SRC_ICON}" -resize 512x512 "flatpak/me.latinosoft.MultiWall.png"
 
-echo "✅ Icono copiado a flatpak/com.latinosoft.MultiWall.png"
+echo "✅ Icono copiado a flatpak/me.latinosoft.MultiWall.png"
 
 # Generar diferentes tamaños si tienes ImageMagick
 echo "🎨 Generando diferentes tamaños de icono..."
@@ -44,7 +44,7 @@ echo "🎨 Generando diferentes tamaños de icono..."
 mkdir -p flatpak/icons
 
 for size in 16 32 48 64 128 256 512; do
-    "${IMAGEMAGICK_BIN}" -background none "${SRC_ICON}"  -resize ${size}x${size} "flatpak/icons/com.latinosoft.MultiWall-${size}.png"
+    "${IMAGEMAGICK_BIN}" -background none "${SRC_ICON}"  -resize ${size}x${size} "flatpak/icons/me.latinosoft.MultiWall-${size}.png"
     echo "  ✓ ${size}x${size}"
 done
 

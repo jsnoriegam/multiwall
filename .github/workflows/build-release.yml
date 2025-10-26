@@ -100,7 +100,7 @@ jobs:
             ### Flatpak (.flatpak)
             ```bash
             flatpak install --user ./MultiWall-${{ steps.version.outputs.VERSION }}-x86_64.flatpak
-            flatpak run com.latinosoft.MultiWall
+            flatpak run me.latinosoft.MultiWall
             ```
             
             ## 🔐 Verify checksums
@@ -152,9 +152,9 @@ jobs:
           flatpak install --user -y "$FLATPAK_FILE"
           
           # Verificar instalación
-          if flatpak info com.latinosoft.MultiWall &> /dev/null; then
+          if flatpak info me.latinosoft.MultiWall &> /dev/null; then
             echo "✅ Aplicación MultiWall (Flatpak) está instalada"
-            flatpak info com.latinosoft.MultiWall
+            flatpak info me.latinosoft.MultiWall
           else
             echo "❌ Aplicación MultiWall (Flatpak) no encontrada"
             exit 1

@@ -90,7 +90,7 @@ chmod +x dist/MultiWall-0.1.0-x86_64.AppImage
 **Flatpak:**
 ```bash
 flatpak install --user dist/MultiWall.flatpak
-flatpak run com.latinosoft.MultiWall
+flatpak run me.latinosoft.MultiWall
 ```
 
 ## 🛠️ Desarrollo

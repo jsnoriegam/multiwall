@@ -1,4 +1,4 @@
-app-id: com.latinosoft.MultiWall
+app-id: me.latinosoft.MultiWall
 runtime: org.gnome.Platform
 runtime-version: '48'
 sdk: org.gnome.Sdk
@@ -30,9 +30,9 @@ finish-args:
   - --talk-name=org.freedesktop.Flatpak
   
   # Acceso al sistema de archivos del host para el wallpaper
-  # El wallpaper se guardará en ~/.var/app/com.latinosoft.MultiWall/config/
+  # El wallpaper se guardará en ~/.var/app/me.latinosoft.MultiWall/config/
   # que es visible desde el host
-  - --persist=.var/app/com.latinosoft.MultiWall
+  - --persist=.var/app/me.latinosoft.MultiWall
   
   # GPU para preview
   - --device=dri
@@ -71,20 +71,20 @@ modules:
       - chmod +x /app/bin/multiwall
       
       # Instalar archivo desktop
-      - install -Dm644 flatpak/com.latinosoft.MultiWall.desktop /app/share/applications/com.latinosoft.MultiWall.desktop
+      - install -Dm644 flatpak/me.latinosoft.MultiWall.desktop /app/share/applications/me.latinosoft.MultiWall.desktop
       
       # Instalar icono
       - |
-        if [ -f flatpak/icons/com.latinosoft.MultiWall-512.png ]; then
-          install -Dm644 flatpak/icons/com.latinosoft.MultiWall-128.png /app/share/icons/hicolor/128x128/apps/com.latinosoft.MultiWall.png
-          install -Dm644 flatpak/icons/com.latinosoft.MultiWall-256.png /app/share/icons/hicolor/256x256/apps/com.latinosoft.MultiWall.png
-          install -Dm644 flatpak/icons/com.latinosoft.MultiWall-512.png /app/share/icons/hicolor/512x512/apps/com.latinosoft.MultiWall.png
+        if [ -f flatpak/icons/me.latinosoft.MultiWall-512.png ]; then
+          install -Dm644 flatpak/icons/me.latinosoft.MultiWall-128.png /app/share/icons/hicolor/128x128/apps/me.latinosoft.MultiWall.png
+          install -Dm644 flatpak/icons/me.latinosoft.MultiWall-256.png /app/share/icons/hicolor/256x256/apps/me.latinosoft.MultiWall.png
+          install -Dm644 flatpak/icons/me.latinosoft.MultiWall-512.png /app/share/icons/hicolor/512x512/apps/me.latinosoft.MultiWall.png
         else
-          install -Dm644 flatpak/com.latinosoft.MultiWall.png /app/share/icons/hicolor/512x512/apps/com.latinosoft.MultiWall.png
+          install -Dm644 flatpak/me.latinosoft.MultiWall.png /app/share/icons/hicolor/512x512/apps/me.latinosoft.MultiWall.png
         fi
       
       # Instalar metainfo
-      - install -Dm644 flatpak/com.latinosoft.MultiWall.metainfo.xml /app/share/metainfo/com.latinosoft.MultiWall.metainfo.xml
+      - install -Dm644 flatpak/me.latinosoft.MultiWall.metainfo.xml /app/share/metainfo/me.latinosoft.MultiWall.metainfo.xml
     
     sources:
       - type: dir

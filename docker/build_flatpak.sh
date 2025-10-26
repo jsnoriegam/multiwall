@@ -3,7 +3,7 @@ set -e
 
 echo "🔨 Construyendo MultiWall Flatpak..."
 
-APP_ID="com.latinosoft.MultiWall"
+APP_ID="me.latinosoft.MultiWall"
 BUILD_DIR="/build/flatpak-build"
 REPO_DIR="/build/flatpak-repo"
 VERSION="${VERSION:-0.1.0}"

@@ -186,7 +186,7 @@ class MultiWallApp(Gtk.Application):
         
         # Basic info
         about.set_program_name("MultiWall")
-        about.set_version("0.3.5")
+        about.set_version("0.3.6")
         about.set_comments(i18n.t('app.about.description'))
         about.set_copyright("© 2025 Juan Salvador Noriega Madrid")
         about.set_website("https://github.com/jsnoriegam/multiwall")
