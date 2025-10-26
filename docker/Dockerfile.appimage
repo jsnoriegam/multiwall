@@ -42,7 +42,7 @@ USER ${USER_ID}:${GROUP_ID}
 WORKDIR /build
 
 # Script de construcción
-COPY --chown=ubuntu:ubuntu build_appimage.sh /build/
+COPY --chown=${USER_ID}:${GROUP_ID} build_appimage.sh /build/
 RUN chmod +x /build/build_appimage.sh
 
 ENTRYPOINT ["/build/build_appimage.sh"]
