@@ -53,7 +53,8 @@ build_appimage() {
         else
             echo "Construyendo imagen de Docker para AppImage..."
         fi
-        docker build --build-arg USER_ID=$(id -u) \
+        docker build \
+        --build-arg USER_ID=$(id -u) \
         --build-arg GROUP_ID=$(id -g) \
         -f docker/Dockerfile.appimage -t multiwall-appimage-local docker/
     fi
@@ -85,7 +86,10 @@ build_flatpak() {
         else
             echo "Construyendo imagen de Docker para Flatpak..."
         fi
-        docker build -f docker/Dockerfile.flatpak -t multiwall-flatpak docker/
+        docker build \
+        --build-arg USER_ID=$(id -u) \
+        --build-arg GROUP_ID=$(id -g) \
+        -f docker/Dockerfile.flatpak -t multiwall-flatpak docker/
     fi
     
     # Ejecutar construcción con acceso a red

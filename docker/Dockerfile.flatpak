@@ -20,12 +20,18 @@ RUN flatpak install -y --noninteractive flathub \
     org.gnome.Sdk//48 \
     org.freedesktop.Sdk.Extension.rust-stable//23.08
 
-# Crear usuario no-root para el build (más seguro)
-RUN useradd -m -u 1000 builder && \
-    mkdir -p /build /output && \
-    chown -R builder:builder /build /output /var/lib/flatpak
+# Usar argumentos para UID/GID del host
+ARG USER_ID=1000
+ARG GROUP_ID=1000
 
-USER builder
+# Crear grupo y usuario con el UID/GID del host
+RUN groupadd -g ${GROUP_ID} builder || true
+RUN useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash builder || true
+
+RUN mkdir -p /build /output && \
+    chown -R ${USER_ID}:${GROUP_ID} /build /output /var/lib/flatpak
+
+USER ${USER_ID}:${GROUP_ID}
 WORKDIR /build
 
 # Script de construcción
