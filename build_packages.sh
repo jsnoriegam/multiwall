@@ -22,7 +22,7 @@ fi
 # --------------------------------------------------
 
 # Verificar que existe el icono
-if [ ! -f "icon.png" ]; then
+if [ ! -f "multiwall_icon.png" ]; then
     echo -e "${YELLOW}⚠️ Advertencia: No se encontró icon.png en la raíz${RESET}"
     echo "Se usará un icono por defecto"
 fi
@@ -47,13 +47,15 @@ build_appimage() {
     echo -e "${GREEN}→ Construyendo AppImage...${RESET}"
     
     # Construir imagen de Docker si no existe O si se fuerza
-    if [[ "$FORCE_REBUILD" == "true" ]] || [[ "$(docker images -q multiwall-appimage 2> /dev/null)" == "" ]]; then
+    if [[ "$FORCE_REBUILD" == "true" ]] || [[ "$(docker images -q multiwall-appimage-local 2> /dev/null)" == "" ]]; then
         if [[ "$FORCE_REBUILD" == "true" ]]; then
             echo "Construyendo imagen de Docker para AppImage (forzado)..."
         else
             echo "Construyendo imagen de Docker para AppImage..."
         fi
-        docker build -f docker/Dockerfile.appimage -t multiwall-appimage docker/
+        docker build --build-arg USER_ID=$(id -u) \
+        --build-arg GROUP_ID=$(id -g) \
+        -f docker/Dockerfile.appimage -t multiwall-appimage-local docker/
     fi
     
     # Ejecutar construcción
@@ -61,7 +63,7 @@ build_appimage() {
         -v "$(pwd):/app" \
         -v "$OUTPUT_DIR:/output" \
         -e VERSION="$VERSION" \
-        multiwall-appimage
+        multiwall-appimage-local
     
     echo -e "${GREEN}✅ AppImage generado en: ${OUTPUT_DIR}/MultiWall-${VERSION}-x86_64.AppImage${RESET}"
 }

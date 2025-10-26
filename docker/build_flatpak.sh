@@ -18,7 +18,6 @@ flatpak-builder \
     --force-clean \
     --repo="$REPO_DIR" \
     --disable-rofiles-fuse \
-    --disable-download \
     "$BUILD_DIR" \
     /app/flatpak/${APP_ID}.yml
 

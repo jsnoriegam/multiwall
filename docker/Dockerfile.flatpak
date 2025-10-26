@@ -11,18 +11,25 @@ RUN dnf install -y \
 ENV XDG_DATA_HOME=/var/lib/flatpak
 RUN mkdir -p $XDG_DATA_HOME
 
-# Añadir repositorio de Flathub (sin --user en el build de Docker)
+# Añadir repositorio de Flathub
 RUN flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
 # Instalar SDKs necesarios
 RUN flatpak install -y --noninteractive flathub \
     org.gnome.Platform//48 \
-    org.gnome.Sdk//48
+    org.gnome.Sdk//48 \
+    org.freedesktop.Sdk.Extension.rust-stable//23.08
 
+# Crear usuario no-root para el build (más seguro)
+RUN useradd -m -u 1000 builder && \
+    mkdir -p /build /output && \
+    chown -R builder:builder /build /output /var/lib/flatpak
+
+USER builder
 WORKDIR /build
 
 # Script de construcción
-COPY build-flatpak.sh /build/
-RUN chmod +x /build/build-flatpak.sh
+COPY --chown=builder:builder build_flatpak.sh /build/
+RUN chmod +x /build/build_flatpak.sh
 
-ENTRYPOINT ["/build/build-flatpak.sh"]
+ENTRYPOINT ["/build/build_flatpak.sh"]

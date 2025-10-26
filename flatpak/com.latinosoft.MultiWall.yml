@@ -4,6 +4,13 @@ runtime-version: '48'
 sdk: org.gnome.Sdk
 command: multiwall
 
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - '*.la'
+  - '*.a'
+
 finish-args:
   # Acceso a X11 y Wayland
   - --socket=wayland

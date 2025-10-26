@@ -3,6 +3,8 @@ set -e
 
 echo "🔨 Construyendo MultiWall AppImage..."
 
+echo "El usuario actual es: ${USER}" $(whoami)
+
 APP_NAME="MultiWall"
 APP_DIR="/build/${APP_NAME}.AppDir"
 VERSION="${VERSION:-0.1.0}"
@@ -151,7 +153,7 @@ Type=Application
 Name=$APP_NAME
 Exec=AppRun
 Icon=multiwall
-Categories=Utility;Graphics;GTK;
+Categories=Utility;
 EOF
 
 echo "🖼️ Copiando ícono..."

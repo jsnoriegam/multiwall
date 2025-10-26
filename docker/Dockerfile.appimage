@@ -26,10 +26,17 @@ RUN cd /usr/local/bin && \
     mv squashfs-root appimagetool.AppDir && \
     ln -sf /usr/local/bin/appimagetool.AppDir/AppRun /usr/local/bin/appimagetool-extract
 
+# Crear usuario no-root para el build (más seguro)
+# RUN useradd -m -u 1000 builder
+RUN mkdir -p /build /output && \
+    chown -R ubuntu:ubuntu /build /output
+
+USER ubuntu
+
 WORKDIR /build
 
 # Script de construcción
-COPY build-appimage.sh /build/
-RUN chmod +x /build/build-appimage.sh
+COPY --chown=ubuntu:ubuntu build_appimage.sh /build/
+RUN chmod +x /build/build_appimage.sh
 
-ENTRYPOINT ["/build/build-appimage.sh"]
+ENTRYPOINT ["/build/build_appimage.sh"]
