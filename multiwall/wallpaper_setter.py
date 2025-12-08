@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from .logger import get_logger
+from .utils import is_running_in_docker
 
 logger = get_logger(__name__)
 
@@ -15,13 +16,6 @@ def is_running_in_flatpak():
     in_flatpak = os.path.exists('/.flatpak-info')
     logger.debug(f"Running in Flatpak: {in_flatpak}")
     return in_flatpak
-
-
-def is_running_in_docker():
-    """Detect if running inside a Docker container."""
-    in_docker = os.path.exists('/.dockerenv')
-    logger.debug(f"Running in Docker: {in_docker}")
-    return in_docker
 
 
 def get_wallpaper_path(timestamp=None):

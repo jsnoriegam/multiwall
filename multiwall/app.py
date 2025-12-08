@@ -72,18 +72,8 @@ from gi.repository import Gtk, Gdk, GLib, GdkPixbuf, Gio
 from .config import load_config, save_config
 from .composer import compose_image
 from .monitor_row import MonitorRow
-from .utils import pil_to_pixbuf
+from .utils import pil_to_pixbuf, set_icon_with_fallback, is_running_in_docker, is_running_in_appimage
 from .image_sidebar import ImageSidebar
-
-
-def is_running_in_docker():
-    """Check if running inside Docker container."""
-    return os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv')
-
-
-def is_running_in_appimage():
-    """Check if running inside an AppImage."""
-    return os.getenv('APPIMAGE') is not None
 
 
 # Use shared directory with host if in Docker
@@ -201,13 +191,7 @@ class MultiWallApp(Gtk.Application):
         
         # About button in header
         about_button = Gtk.Button()
-        
-        # Workaround for missing icons in AppImage/Docker
-        if is_running_in_appimage() or is_running_in_docker():
-            about_button.set_label("ℹ️")
-        else:
-            about_button.set_icon_name("help-about-symbolic")
-            
+        set_icon_with_fallback(about_button, "help-about-symbolic", "ℹ︎")
         about_button.set_tooltip_text(i18n.t('app.about.title'))
         about_button.connect("clicked", self.show_about_dialog)
         header.pack_end(about_button)

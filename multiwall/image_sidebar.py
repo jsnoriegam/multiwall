@@ -7,6 +7,7 @@ from gi import require_version
 require_version('Gtk', '4.0')
 from gi.repository import Gtk, GdkPixbuf, GLib, Gio
 from .logger import get_logger
+from .utils import set_icon_with_fallback
 
 logger = get_logger(__name__)
 
@@ -46,7 +47,7 @@ class ImageSidebar(Gtk.Box):
         
         # Change folder button
         change_btn = Gtk.Button()
-        change_btn.set_icon_name('folder-open-symbolic')
+        set_icon_with_fallback(change_btn, 'folder-open-symbolic', '📁')
         change_btn.set_tooltip_text(i18n.t('sidebar.change_folder'))
         change_btn.connect('clicked', self.on_change_folder)
         change_btn.add_css_class('flat')
@@ -54,7 +55,7 @@ class ImageSidebar(Gtk.Box):
         
         # Refresh button
         refresh_btn = Gtk.Button()
-        refresh_btn.set_icon_name('view-refresh-symbolic')
+        set_icon_with_fallback(refresh_btn, 'view-refresh-symbolic', '🔄')
         refresh_btn.set_tooltip_text(i18n.t('sidebar.refresh'))
         refresh_btn.connect('clicked', lambda _: self.load_images())
         refresh_btn.add_css_class('flat')
