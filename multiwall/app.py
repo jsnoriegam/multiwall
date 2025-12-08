@@ -1,6 +1,7 @@
 import i18n
 import os
 import sys
+import time
 from pathlib import Path
 from .logger import get_logger, setup_logger
 import logging
@@ -80,6 +81,11 @@ def is_running_in_docker():
     return os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv')
 
 
+def is_running_in_appimage():
+    """Check if running inside an AppImage."""
+    return os.getenv('APPIMAGE') is not None
+
+
 # Use shared directory with host if in Docker
 if is_running_in_docker():
     TMP_OUTPUT = str(Path.home() / ".config" / "multiwall" / "current_wallpaper.jpg")
@@ -151,8 +157,60 @@ class MultiWallApp(Gtk.Application):
         self.window.present()
         logger.info("Application window presented")
 
+    def show_about_dialog(self, button):
+        """Show About dialog."""
+        logger.debug("Opening About dialog")
+        
+        about = Gtk.AboutDialog()
+        about.set_transient_for(self.window)
+        about.set_modal(True)
+        
+        # Basic info
+        about.set_program_name("MultiWall")
+        about.set_version("0.3.8")
+        about.set_comments(i18n.t('app.about.description'))
+        about.set_copyright("© 2025 Juan Salvador Noriega Madrid")
+        about.set_website("https://github.com/jsnoriegam/multiwall")
+        about.set_website_label(i18n.t('app.about.website'))
+        about.set_license_type(Gtk.License.MIT_X11)
+        
+        # Authors
+        about.set_authors(["Juan Salvador Noriega Madrid"])
+        
+        # Logo (if exists)
+        try:
+            icon_path = Path(__file__).parent / "icon.png"
+            if icon_path.exists():
+                texture = Gdk.Texture.new_from_filename(str(icon_path))
+
+                about.set_logo(texture)
+            else:
+                logger.debug(f"Icon not found at {icon_path}")
+        except Exception as e:
+            logger.warning(f"Could not load icon for About dialog: {e}")
+        
+        about.present()
+
     def build_ui(self):
         logger.debug("Building UI components")
+        
+        # Main container with header bar
+        header = Gtk.HeaderBar()
+        header.set_show_title_buttons(True)
+        self.window.set_titlebar(header)
+        
+        # About button in header
+        about_button = Gtk.Button()
+        
+        # Workaround for missing icons in AppImage/Docker
+        if is_running_in_appimage() or is_running_in_docker():
+            about_button.set_label("ℹ️")
+        else:
+            about_button.set_icon_name("help-about-symbolic")
+            
+        about_button.set_tooltip_text(i18n.t('app.about.title'))
+        about_button.connect("clicked", self.show_about_dialog)
+        header.pack_end(about_button)
         
         # Main horizontal container: content + sidebar
         main_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
@@ -179,27 +237,70 @@ class MultiWallApp(Gtk.Application):
         main.append(content)
 
         # === PREVIEW AREA ===
-        preview_frame = Gtk.Frame()
-        preview_frame.set_label(i18n.t('app.preview_label'))
-        preview_frame.set_vexpand(True)
-        preview_frame.set_hexpand(True)
-        content.append(preview_frame)
 
-        scrolled_window = Gtk.ScrolledWindow()
-        preview_frame.set_child(scrolled_window)
+        self.notebook = Gtk.Notebook()
+        self.notebook.set_tab_pos(Gtk.PositionType.TOP)
+        content.append(self.notebook)
 
-        preview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        preview_box.set_margin_top(20)
-        preview_box.set_margin_bottom(20)
-        preview_box.set_margin_start(20)
-        preview_box.set_margin_end(20)
+        page_light = Gtk.Box()
+        page_dark = Gtk.Box()
 
-        scrolled_window.set_child(preview_box)       
+        tab_light = Gtk.Label(label=i18n.t('app.theme.light'))
+        tab_dark = Gtk.Label(label=i18n.t('app.theme.dark'))
 
-        self.preview = Gtk.Picture()
-        self.preview.set_vexpand(True)
-        self.preview.set_hexpand(True)
-        preview_box.append(self.preview)
+        self.notebook.append_page(page_light, tab_light)
+        self.notebook.append_page(page_dark, tab_dark)
+        
+        # Connect tab switch handler
+        self.notebook.connect('switch-page', self.on_tab_switched)
+
+        # === LIGHT TAB PREVIEW ===
+        preview_frame_light = Gtk.Frame()
+        preview_frame_light.set_label(i18n.t('app.preview_label'))
+        preview_frame_light.set_vexpand(True)
+        preview_frame_light.set_hexpand(True)
+
+        scrolled_window_light = Gtk.ScrolledWindow()
+        preview_frame_light.set_child(scrolled_window_light)
+
+        preview_box_light = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        preview_box_light.add_css_class('rounded-box')
+        preview_box_light.set_margin_top(20)
+        preview_box_light.set_margin_bottom(20)
+        preview_box_light.set_margin_start(20)
+        preview_box_light.set_margin_end(20)
+
+        scrolled_window_light.set_child(preview_box_light)       
+
+        self.preview_light = Gtk.Picture()
+
+        preview_box_light.append(self.preview_light)
+
+        page_light.append(preview_frame_light)
+
+        # === DARK TAB PREVIEW ===
+        preview_frame_dark = Gtk.Frame()
+        preview_frame_dark.set_label(i18n.t('app.preview_label'))
+        preview_frame_dark.set_vexpand(True)
+        preview_frame_dark.set_hexpand(True)
+
+        scrolled_window_dark = Gtk.ScrolledWindow()
+        preview_frame_dark.set_child(scrolled_window_dark)
+
+        preview_box_dark = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        preview_box_dark.add_css_class('rounded-box')
+        preview_box_dark.set_margin_top(20)
+        preview_box_dark.set_margin_bottom(20)
+        preview_box_dark.set_margin_start(20)
+        preview_box_dark.set_margin_end(20)
+
+        scrolled_window_dark.set_child(preview_box_dark)       
+
+        self.preview_dark = Gtk.Picture()
+
+        preview_box_dark.append(self.preview_dark)
+
+        page_dark.append(preview_frame_dark)
 
         # === CONTROLS AREA ===
         controls_frame = Gtk.Frame()
@@ -226,11 +327,17 @@ class MultiWallApp(Gtk.Application):
         list_box.set_margin_end(10)
         scroll.set_child(list_box)
 
+        # Create monitor rows (shared between tabs, but loads different configs)
+        # We'll store separate configs for light and dark modes
+        self.light_config = saved
+        self.dark_config = self.settings.get('monitors_dark', {})
+        
         self.rows = []
         for i, mon in enumerate(self.monitors):
             geom = mon.get_geometry()
             logger.debug(f"Monitor {i}: {geom.width}x{geom.height} @ ({geom.x}, {geom.y})")
-            row = MonitorRow(i, geom, saved.get(str(i), {}), self.on_monitor_changed, self)
+            # Start with light mode configuration
+            row = MonitorRow(i, geom, self.light_config.get(str(i), {}), self.on_monitor_changed, self)
             list_box.append(row)
             self.rows.append(row)
 
@@ -322,41 +429,126 @@ class MultiWallApp(Gtk.Application):
         """Assign an image to a specific monitor."""
         logger.info(f"Assigning image to monitor {monitor_idx}: {os.path.basename(image_path)}")
         self.rows[monitor_idx].set_image_file(image_path)
-        self.on_monitor_changed()
+        # Save to appropriate config based on active tab
+        self.save_current_tab_config()
+        self.update_preview()
         # Close popover after selection
         popover.popdown()
+    
+    def on_tab_switched(self, notebook, page, page_num):
+        """Callback when switching between light and dark tabs."""
+        logger.info(f"Switching to tab {page_num} ({'dark' if page_num == 1 else 'light'})")
+        
+        # First, save current configuration before switching
+        self.save_current_tab_config()
+        
+        # Then load the configuration for the new tab
+        self.load_tab_config(page_num == 1)
+    
+    def save_current_tab_config(self):
+        """Save the current monitor configuration to the appropriate config (light or dark)."""
+        current_states = {str(r.index): r.get_state() for r in self.rows}
+        
+        # Determine which config to save to based on current tab
+        # We need to check which tab we're currently on before the switch
+        current_page = self.notebook.get_current_page()
+        
+        if current_page == 0:
+            # Save to light config
+            self.light_config = current_states
+            logger.debug("Saved current configuration to light mode")
+        else:
+            # Save to dark config
+            self.dark_config = current_states
+            logger.debug("Saved current configuration to dark mode")
+    
+    def load_tab_config(self, is_dark):
+        """Load the configuration for the specified tab into the monitor rows."""
+        config = self.dark_config if is_dark else self.light_config
+        
+        for row in self.rows:
+            row_config = config.get(str(row.index), {})
+            
+            # Always update all fields - use defaults if not in config
+            # This ensures switching tabs properly resets everything
+            
+            # Update file (or clear if not set)
+            file_path = row_config.get('file', None)
+            if file_path:
+                row.set_image_file(file_path)
+            else:
+                # Clear the image
+                row.selected_file = None
+                row.file_button.set_label(i18n.t('monitor.select_image'))
+            
+            # Update mode (default to 'fill')
+            mode = row_config.get('mode', 'fill')
+            row.set_mode(mode)
+            
+            # Update background (default to black)
+            background = row_config.get('background', '#000000')
+            row.set_bg_color(background)
+        
+        logger.debug(f"Loaded {'dark' if is_dark else 'light'} mode configuration into rows")
+        
+        # Update preview after loading
+        self.update_preview()
 
-    def gather_states(self):
-        """Gather current state of all monitors."""
-        states = {str(r.index): r.get_state() for r in self.rows}
-        logger.debug(f"Gathered states for {len(states)} monitors")
-        return states
+    def gather_states(self, dark_mode=False):
+        """Gather current state of all monitors.
+        
+        Args:
+            dark_mode: If True, gather states from dark config, otherwise from light config
+        """
+        # Return the appropriate stored configuration
+        config = self.dark_config if dark_mode else self.light_config
+        logger.debug(f"Gathered states for {len(config)} monitors (dark_mode={dark_mode})")
+        return config
 
     def update_preview(self, *_):
         """Update the wallpaper preview."""
         try:
-            logger.debug("=== Updating preview ===")
-            states = self.gather_states()
+            # Update light theme preview
+            logger.info("Updating light theme preview")
+            logger.debug("=== Updating light preview ===")
+            states_light = self.gather_states(dark_mode=False)
             
-            preview = compose_image(self.monitors, states, scale_preview=1200)
-            logger.debug(f"Preview generated: {preview.size}")
+            preview_light = compose_image(self.monitors, states_light, scale_preview=1200)
+            logger.debug(f"Light preview generated: {preview_light.size}")
             
-            self.preview.set_pixbuf(None)  # Clear previous
+            self.preview_light.set_pixbuf(None)  # Clear previous
             
-            pix = pil_to_pixbuf(preview.convert('RGB'))
-            logger.debug(f"Pixbuf created: {pix.get_width()}x{pix.get_height()}")
+            pix_light = pil_to_pixbuf(preview_light.convert('RGB'))
+            logger.debug(f"Light pixbuf created: {pix_light.get_width()}x{pix_light.get_height()}")
             
-            self.preview.set_pixbuf(pix)
-            logger.debug("Preview updated successfully")
+            self.preview_light.set_pixbuf(pix_light)
+            logger.debug("Light preview updated successfully")
+            
+            # Update dark theme preview
+            logger.info("Updating dark theme preview")
+            logger.debug("=== Updating dark preview ===")
+            states_dark = self.gather_states(dark_mode=True)
+            
+            preview_dark = compose_image(self.monitors, states_dark, scale_preview=1200)
+            logger.debug(f"Dark preview generated: {preview_dark.size}")
+            
+            self.preview_dark.set_pixbuf(None)  # Clear previous
+            
+            pix_dark = pil_to_pixbuf(preview_dark.convert('RGB'))
+            logger.debug(f"Dark pixbuf created: {pix_dark.get_width()}x{pix_dark.get_height()}")
+            
+            self.preview_dark.set_pixbuf(pix_dark)
+            logger.debug("Dark preview updated successfully")
         except Exception as e:
             logger.error(f"Error updating preview: {e}", exc_info=True)
 
     def on_monitor_changed(self, *_):
         """Callback when monitor configuration changes."""
         self.update_preview()
-        # Auto-save configuration on change
+        # Auto-save configuration on change for both tabs
         save_config({
-            'monitors': self.gather_states(),
+            'monitors': self.gather_states(dark_mode=False),
+            'monitors_dark': self.gather_states(dark_mode=True),
             'last_directory': self.last_directory
         })
 
@@ -368,18 +560,27 @@ class MultiWallApp(Gtk.Application):
             # Import wallpaper module
             from .wallpaper_setter import apply_wallpaper, get_wallpaper_path
             
+            # Determine which tab is active
+            current_page = self.notebook.get_current_page()
+            is_dark_tab = current_page == 1
+            
+            logger.info(f"Current tab: {'dark' if is_dark_tab else 'light'}")
+            
             # Auto-save configuration before applying
             save_config({
-                'monitors': self.gather_states(),
+                'monitors': self.gather_states(dark_mode=False),
+                'monitors_dark': self.gather_states(dark_mode=True),
                 'last_directory': self.last_directory
             })
             
-            # Generate combined image
-            combined = compose_image(self.monitors, self.gather_states())
+            # Generate combined image from appropriate tab
+            states = self.gather_states(dark_mode=is_dark_tab)
+            combined = compose_image(self.monitors, states)
             logger.debug(f"Combined image generated: {combined.size}")
             
             # Get appropriate path based on environment
-            output_path = get_wallpaper_path()
+            timestamp = str(int(time.time()))
+            output_path = get_wallpaper_path(timestamp)
             
             # Ensure directory exists
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -389,7 +590,9 @@ class MultiWallApp(Gtk.Application):
             logger.info(f"Wallpaper saved to: {output_path}")
             
             # Apply wallpaper using appropriate method
-            success, message, script_path = apply_wallpaper(output_path)
+            # If light tab: apply to both modes (dark_mode=False)
+            # If dark tab: apply only to dark mode (dark_mode=True)
+            success, message, script_path = apply_wallpaper(output_path, dark_mode=is_dark_tab)
             
             if success:
                 logger.info(f"Wallpaper applied successfully")

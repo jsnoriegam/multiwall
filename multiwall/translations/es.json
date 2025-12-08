@@ -5,6 +5,10 @@
       "header": "🖥️ Gestor de Wallpapers Multi-Monitor",
       "preview_label": "👁️ Vista Previa",
       "controls_label": "⚙️ Configuración de Monitores",
+      "theme": {
+        "light": "☀️ Modo Claro",
+        "dark": "🌙 Modo Oscuro"
+      },
       "buttons": {
         "update": "🔄 Actualizar Vista",
         "save": "💾 Guardar Configuración",

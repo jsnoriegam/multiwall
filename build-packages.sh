@@ -77,13 +77,16 @@ build_flatpak() {
     fi
     
     # Construir imagen de Docker si no existe O si se fuerza
-    if [[ "$FORCE_REBUILD" == "true" ]] || [[ "$(docker images -q multiwall-flatpak 2> /dev/null)" == "" ]]; then
+    if [[ "$FORCE_REBUILD" == "true" ]] || [[ "$(docker images -q multiwall-flatpak-local 2> /dev/null)" == "" ]]; then
         if [[ "$FORCE_REBUILD" == "true" ]]; then
             echo "Construyendo imagen de Docker para Flatpak (forzado)..."
         else
             echo "Construyendo imagen de Docker para Flatpak..."
         fi
-        docker build -f docker/Dockerfile.flatpak -t multiwall-flatpak docker/
+        docker build \
+        --build-arg USER_ID=$(id -u) \
+        --build-arg GROUP_ID=$(id -g) \
+        -f docker/Dockerfile.flatpak -t multiwall-flatpak-local docker/
     fi
     
     # Ejecutar construcción con acceso a red
@@ -93,7 +96,7 @@ build_flatpak() {
         -v "$OUTPUT_DIR:/output" \
         -e VERSION="$VERSION" \
         --network=host \
-        multiwall-flatpak
+        multiwall-flatpak-local
     
     echo -e "${GREEN}✅ Flatpak generado en: ${OUTPUT_DIR}/MultiWall-${VERSION}-x86_64.flatpak${RESET}"
 }

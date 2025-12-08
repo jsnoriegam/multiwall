@@ -5,6 +5,10 @@
       "header": "🖥️ Multi-Monitor Wallpaper Manager",
       "preview_label": "👁️ Preview",
       "controls_label": "⚙️ Monitor Settings",
+      "theme": {
+        "light": "☀️ Light Mode",
+        "dark": "🌙 Dark Mode"
+      },
       "buttons": {
         "update": "🔄 Update Preview",
         "save": "💾 Save Configuration",

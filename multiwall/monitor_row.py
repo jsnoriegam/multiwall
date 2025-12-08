@@ -204,3 +204,31 @@ class MonitorRow(Gtk.Box):
         }
         logger.debug(f"Monitor {self.index} state: file={os.path.basename(self.selected_file) if self.selected_file else 'None'}, mode={mode}, bg={color_hex}")
         return state
+    
+    def set_mode(self, mode):
+        """
+        Set display mode programmatically.
+        
+        Args:
+            mode: Mode string ('fill', 'fit', 'stretch', 'center', 'tile')
+        """
+        if mode in self.mode_map:
+            mode_index = self.mode_map.index(mode)
+            self.combo.set_selected(mode_index)
+            logger.debug(f"Monitor {self.index}: Mode set to '{mode}'")
+        else:
+            logger.warning(f"Monitor {self.index}: Unknown mode '{mode}'")
+    
+    def set_bg_color(self, color_hex):
+        """
+        Set background color programmatically.
+        
+        Args:
+            color_hex: Hex color string (e.g., '#000000')
+        """
+        rgba = Gdk.RGBA()
+        if rgba.parse(color_hex):
+            self.color.set_rgba(rgba)
+            logger.debug(f"Monitor {self.index}: Background color set to {color_hex}")
+        else:
+            logger.warning(f"Monitor {self.index}: Invalid color '{color_hex}'")
