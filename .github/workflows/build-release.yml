@@ -24,6 +24,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Verify Flatpak runtime branch
+        run: |
+          echo "Dockerfile.flatpak branches:"
+          grep -nE "org\.gnome\.(Platform|Sdk)//" docker/Dockerfile.flatpak || true
+          echo "Manifest runtime-version:"
+          grep -nE "runtime-version:" flatpak/com.latinosoft.MultiWall.yml || true
+
+          if grep -qE "org\.gnome\.(Platform|Sdk)//48" docker/Dockerfile.flatpak; then
+            echo "❌ docker/Dockerfile.flatpak still references branch 48"
+            exit 1
+          fi
+
+          if grep -qE "runtime-version:\s*'48'" flatpak/com.latinosoft.MultiWall.yml; then
+            echo "❌ flatpak/com.latinosoft.MultiWall.yml still uses runtime-version 48"
+            exit 1
+          fi
+
+          echo "✅ Flatpak runtime checks passed (branch 50)"
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
