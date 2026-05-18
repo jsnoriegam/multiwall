@@ -135,7 +135,7 @@ jobs:
           # Agregar repositorio Flathub
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
-          flatpak install --user -y --noninteractive flathub org.gnome.Platform//48 org.gnome.Sdk//48
+          flatpak install --user -y --noninteractive flathub org.gnome.Platform//50 org.gnome.Sdk//50
           
           # Encontrar el archivo .flatpak
           FLATPAK_FILE=$(ls MultiWall-*.flatpak 2>/dev/null | head -n 1)

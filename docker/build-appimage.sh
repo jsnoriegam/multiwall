@@ -5,6 +5,9 @@ echo "🔨 Construyendo MultiWall AppImage..."
 
 APP_NAME="MultiWall"
 APP_DIR="/build/${APP_NAME}.AppDir"
+if [[ -z "${VERSION:-}" ]]; then
+    VERSION=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' /app/multiwall/__init__.py)
+fi
 VERSION="${VERSION:-0.1.0}"
 
 # Crear estructura AppDir

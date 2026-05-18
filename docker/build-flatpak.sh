@@ -6,6 +6,9 @@ echo "🔨 Construyendo MultiWall Flatpak..."
 APP_ID="com.latinosoft.MultiWall"
 BUILD_DIR="/build/flatpak-build"
 REPO_DIR="/build/flatpak-repo"
+if [[ -z "${VERSION:-}" ]]; then
+    VERSION=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' /app/multiwall/__init__.py)
+fi
 VERSION="${VERSION:-0.1.0}"
 
 # Crear directorios
@@ -16,9 +19,9 @@ mkdir -p "$REPO_DIR"
 echo "📦 Construyendo con flatpak-builder..."
 flatpak-builder \
     --force-clean \
+    --install-deps-from=flathub \
     --repo="$REPO_DIR" \
     --disable-rofiles-fuse \
-    --disable-download \
     "$BUILD_DIR" \
     /app/flatpak/${APP_ID}.yml
 

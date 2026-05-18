@@ -6,6 +6,9 @@ CYAN="\e[36m"
 YELLOW="\e[33m"
 RESET="\e[0m"
 
+if [[ -z "${VERSION:-}" ]]; then
+    VERSION=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' multiwall/__init__.py)
+fi
 VERSION="${VERSION:-0.1.0}"
 OUTPUT_DIR="$(pwd)/dist"
 
@@ -76,18 +79,16 @@ build_flatpak() {
         mkdir -p flatpak
     fi
     
-    # Construir imagen de Docker si no existe O si se fuerza
-    if [[ "$FORCE_REBUILD" == "true" ]] || [[ "$(docker images -q multiwall-flatpak-local 2> /dev/null)" == "" ]]; then
-        if [[ "$FORCE_REBUILD" == "true" ]]; then
-            echo "Construyendo imagen de Docker para Flatpak (forzado)..."
-        else
-            echo "Construyendo imagen de Docker para Flatpak..."
-        fi
-        docker build \
-        --build-arg USER_ID=$(id -u) \
-        --build-arg GROUP_ID=$(id -g) \
-        -f docker/Dockerfile.flatpak -t multiwall-flatpak-local docker/
+    # Reconstruir siempre para evitar usar una imagen obsoleta con SDK/runtimes desactualizados
+    if [[ "$FORCE_REBUILD" == "true" ]]; then
+        echo "Construyendo imagen de Docker para Flatpak (forzado)..."
+    else
+        echo "Construyendo imagen de Docker para Flatpak..."
     fi
+    docker build \
+    --build-arg USER_ID=$(id -u) \
+    --build-arg GROUP_ID=$(id -g) \
+    -f docker/Dockerfile.flatpak -t multiwall-flatpak-local docker/
     
     # Ejecutar construcción con acceso a red
     docker run --rm \
